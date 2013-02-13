@@ -1,7 +1,6 @@
 /* PopCheck.c                                                                 *
  * Author: Staffan Hämälä (staham@algonet.se)                                 *
  * Date started: 28-Apr-1998                                                  *
- * Version: 1.4                                                               *
  *                                                                            *
  * Description:                                                               *
  *  A small utility to check and manage a user on a pop3 server               *
