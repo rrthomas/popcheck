@@ -81,8 +81,7 @@ void MainProg (void);
 
 /* Global variables */
 
-static char *pophost = 0, *popuser = 0, *poppass = 0, *ifilename =
-  0, *ofilename = 0;
+static char *pophost = 0, *popuser = 0, *poppass = 0, *ifilename = 0, *ofilename = 0;
 static int popport = 110;
 
 int hSocket = SMTP_NO_SOCKET;
@@ -277,9 +276,8 @@ main (int argc, char *argv[])
 			if (tempnode->size == tmpsize)
 			  SendCmd ("DELE", tmpbuffer);
 			else
-			  printf
-			    ("Wrong messagesize, skipping message %d (%d<=>%d)\n",
-			     tmpnum, tmpsize, tempnode->size);
+			  printf ("Wrong messagesize, skipping message %d (%d<=>%d)\n",
+                                  tmpnum, tmpsize, tempnode->size);
 			break;
 		      }
 		      tempnode = tempnode->next;
@@ -336,8 +334,7 @@ MainProg (void)
 
   move (LINES - 1, 0);
   attrset (A_BOLD);
-  addstr
-    ("USAGE: Q - Quit without saving  S - Quit and save D - Mark for delete");
+  addstr ("USAGE: Q - Quit without saving  S - Quit and save D - Mark for delete");
   attrset (A_NORMAL);
 
   currentnode = &lh;
@@ -560,9 +557,7 @@ SocketConnect (void)
     return (FALSE);
   }
 
-  if (connect
-      (hSocket, (struct sockaddr *) &INetSocketAddr,
-       sizeof (INetSocketAddr)) == -1) {
+  if (connect (hSocket, (struct sockaddr *) &INetSocketAddr, sizeof (INetSocketAddr)) == -1) {
     perror ("Socket connection failed");
     close (hSocket);
     return (FALSE);
