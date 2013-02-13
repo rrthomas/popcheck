@@ -25,6 +25,7 @@
  * e-mail - mail your message to <staham@algonet.se>.                         *
  */
 
+#include "config.h"
 
 #include <sys/types.h>
 #include <sys/socket.h>
