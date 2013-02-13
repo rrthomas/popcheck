@@ -53,38 +53,39 @@
 
 struct ListNode
 {
-	struct ListNode *prev;
-	struct ListNode *next;
-	char	subject[60];
-	char	from[60];
-	int	size;
-	int	num;
-	int	del;
+  struct ListNode *prev;
+  struct ListNode *next;
+  char subject[60];
+  char from[60];
+  int size;
+  int num;
+  int del;
 };
 
 /* Own functions */
 
-int SendCmd(char *cmd, char *parm);
-int SendDat(char *string);
-int RecvDat(char *databuf,int datlen);
-void SocketDisconnect(void);
-int SocketConnect(void);
-void LocateHeaders(char *buffer, int buflen, int reset);
-void RemNode(struct ListNode *node);
-void FreeAllNodes(void);
-struct ListNode *AddNode(struct ListNode *node);
-int AddAllNodes(int numof);
+int SendCmd (char *cmd, char *parm);
+int SendDat (char *string);
+int RecvDat (char *databuf, int datlen);
+void SocketDisconnect (void);
+int SocketConnect (void);
+void LocateHeaders (char *buffer, int buflen, int reset);
+void RemNode (struct ListNode *node);
+void FreeAllNodes (void);
+struct ListNode *AddNode (struct ListNode *node);
+int AddAllNodes (int numof);
 
-static void finish(int sig);
-void MainProg(void);
+static void finish (int sig);
+void MainProg (void);
 
 
 /* Global variables */
 
 extern int h_errno;
 
-static char *pophost=0,*popuser=0,*poppass=0,*ifilename=0,*ofilename=0;
-static int popport=110;
+static char *pophost = 0, *popuser = 0, *poppass = 0, *ifilename =
+  0, *ofilename = 0;
+static int popport = 110;
 
 int hSocket = SMTP_NO_SOCKET;
 struct sockaddr_in INetSocketAddr;
@@ -100,7 +101,8 @@ static char tmpbuffer[500];
 
 static long MailCount;
 
-static char *USAGE_STRING="Usage: %s [-s server] [-P port] [-u user] [-p password] [-o filename] [-i filename]\n";
+static char *USAGE_STRING =
+  "Usage: %s [-s server] [-P port] [-u user] [-p password] [-o filename] [-i filename]\n";
 
 
 /*
@@ -109,340 +111,347 @@ static char *USAGE_STRING="Usage: %s [-s server] [-P port] [-u user] [-p passwor
 ----------------------------------------------------------------------
 */
 
-int main(int argc, char *argv[])
+int
+main (int argc, char *argv[])
 {
-	extern int optind;
-	extern char *optarg;
-	char progname[]="popcheck";
-	char sw;
-	long int a,b;
-	int tmpnum,tmpsize;
-	char tmpbuf[10];
+  extern int optind;
+  extern char *optarg;
+  char progname[] = "popcheck";
+  char sw;
+  long int a, b;
+  int tmpnum, tmpsize;
+  char tmpbuf[10];
 
-	struct ListNode *tempnode;
-	struct termios oldTermios,newTermios;
+  struct ListNode *tempnode;
+  struct termios oldTermios, newTermios;
 
-	lh.next=NULL;
-	lh.prev=NULL;
+  lh.next = NULL;
+  lh.prev = NULL;
 
-	while ((sw = getopt(argc, argv, "s:P:u:p:i:o:")) != (char) EOF)
-		switch (sw)
-		{
-			case 's':		/* Server switch */
-				pophost=optarg;
-				break;
-	                case 'P':		/* Port switch */
-                                popport=atoi(optarg);
-                                break;
-			case 'u':		/* Pop User switch */
-				popuser=optarg;
-				break;
-			case 'p':		/* Pop Password switch */
-				poppass=optarg;
-				break;
-			case 'o':		/* Optional filename */
-				ofilename=optarg;
-				break;
-			case 'i':		/* Optional filename */
-				ifilename=optarg;
-				break;
-			case '?':		/* Unknown switch */
-				fprintf(stderr,USAGE_STRING,progname);
-				exit(1);
+  while ((sw = getopt (argc, argv, "s:P:u:p:i:o:")) != (char) EOF)
+    switch (sw) {
+    case 's':			/* Server switch */
+      pophost = optarg;
+      break;
+    case 'P':			/* Port switch */
+      popport = atoi (optarg);
+      break;
+    case 'u':			/* Pop User switch */
+      popuser = optarg;
+      break;
+    case 'p':			/* Pop Password switch */
+      poppass = optarg;
+      break;
+    case 'o':			/* Optional filename */
+      ofilename = optarg;
+      break;
+    case 'i':			/* Optional filename */
+      ifilename = optarg;
+      break;
+    case '?':			/* Unknown switch */
+      fprintf (stderr, USAGE_STRING, progname);
+      exit (1);
+    }
+
+  if ((!pophost) || (!popuser)) {
+    fprintf (stderr, USAGE_STRING, progname);
+    exit (1);
+  }
+
+  if (!poppass) {
+
+    /* Get the current state of termios */
+    tcgetattr (STDIN_FILENO, &newTermios);
+    /* Keep a copy of the current setting of termios */
+    oldTermios = newTermios;
+    /* Remove the echo flag */
+    newTermios.c_lflag &= ~ECHO;
+    /* Add the ECHONL flag */
+    newTermios.c_lflag |= ECHONL;
+    /* activate new termios */
+    tcsetattr (STDIN_FILENO, TCSAFLUSH, &newTermios);
+
+    printf ("POP Password: ");
+    fgets (passbuff, 40, stdin);
+
+    /* reset to old termios */
+    tcsetattr (STDIN_FILENO, TCSANOW, &oldTermios);
+
+    poppass = passbuff;
+    for (a = 0; (passbuff[a] != 0x00) && (passbuff[a] != 0x0A); a++);
+    passbuff[a] = 0x00;
+  }
+
+
+  if (!(file = tmpfile ())) {
+    perror ("Tempfile");
+    exit (1);
+  }
+
+  if (SocketConnect ()) {
+    if ((a = SendCmd ("STAT", NULL)) != -1) {
+      if (a) {
+	if (AddAllNodes (a)) {
+	  if ((SendCmd ("LIST", NULL)) != -1) {
+	    tempnode = &lh;
+
+	    printf ("Getting data for message:\n");
+
+	    for (b = 1; b <= a; b++) {
+	      sprintf (tmpbuf, "%ld", b);	/* Convert int to string */
+
+	      TopFrom = tempnode->from;
+	      TopSubject = tempnode->subject;
+
+	      printf ("\r%ld of %ld", b, a);
+	      fflush (stdout);
+
+	      if ((SendCmd ("TOP", tmpbuf)) == -1)
+		break;
+
+	      tempnode = tempnode->next;
+	    }
+
+	    MailCount = a;
+
+	    if (ofilename) {
+	      printf ("\nDumping data to file '%s'... ", ofilename);
+
+	      if ((iofile = fopen (ofilename, "w"))) {
+
+		tempnode = &lh;
+
+		while (tempnode) {
+		  fprintf (iofile,
+			   "%d:%d %-40.40s %-40.40s\n",
+			   tempnode->num, tempnode->size,
+			   tempnode->from, tempnode->subject);
+		  tempnode = tempnode->next;
 		}
 
-	if((!pophost) || (!popuser))
-	{
-		fprintf(stderr,USAGE_STRING,progname);
-		exit(1);
-	}
+		printf ("Done\n");
+		fclose (iofile);
+	      }
+	      else
+		perror (ofilename);
+	    }
+	    else if (ifilename) {
+	      printf ("\n");
+	      if ((iofile = fopen (ifilename, "r"))) {
+		printf
+		  ("You're about to delete all messages specified in '%s', are you sure you this is what you want? ",
+		   ifilename);
+		fgets (tmpbuffer, 10, stdin);
+		if (tmpbuffer[0] == 'y' || tmpbuffer[0] == 'Y') {
+		  b = 0;
+		  while (fgets (tmpbuffer, 500, iofile)) {
+		    if (b) {	/* If the last line wasn't completely read into the buffer */
+		      if (tmpbuffer[strlen (tmpbuffer) - 1] == '\n')
+			b = 0;
+		      continue;
+		    }
 
-	if(!poppass)
-	{
+		    if (tmpbuffer[strlen (tmpbuffer) - 1] == '\n')
+		      b = 0;
+		    else
+		      b = 1;
 
-		/* Get the current state of termios */
-		tcgetattr(STDIN_FILENO,&newTermios);
-		/* Keep a copy of the current setting of termios */
-		oldTermios = newTermios;
-		/* Remove the echo flag */
-		newTermios.c_lflag &= ~ECHO;
-		/* Add the ECHONL flag */
-		newTermios.c_lflag |= ECHONL;
-		/* activate new termios */
-		tcsetattr(STDIN_FILENO,TCSAFLUSH,&newTermios);
-
-		printf("POP Password: ");
-		fgets(passbuff,40,stdin);
-
-		/* reset to old termios */
-		tcsetattr(STDIN_FILENO,TCSANOW,&oldTermios);
-
-		poppass=passbuff;
-		for(a=0;(passbuff[a]!=0x00) &&(passbuff[a]!=0x0A);a++);
-		passbuff[a]=0x00;
-	}
-
-
-	if(!(file=tmpfile()))
-	{
-		perror("Tempfile");
-		exit(1);
-	}
-
-	if(SocketConnect())
-	{
-		if((a=SendCmd("STAT",NULL))!=-1)
-		{
-			if(a)
-			{
-				if(AddAllNodes(a))
-				{
-					if((SendCmd("LIST",NULL))!=-1)
-					{
-						tempnode=&lh;
-
-						printf("Getting data for message:\n");
-
-						for(b=1;b<=a;b++)
-						{
-							sprintf(tmpbuf,"%ld",b);			/* Convert int to string */
-
-							TopFrom=tempnode->from;
-							TopSubject=tempnode->subject;
-
-							printf("\r%ld of %ld",b,a);
-							fflush(stdout);
-
-							if((SendCmd("TOP",tmpbuf))==-1) break;
-
-							tempnode=tempnode->next;
-						}
-
-						MailCount=a;
-
-						if(ofilename)
-						{
-							printf("\nDumping data to file '%s'... ",ofilename);
-
-							if	((iofile=fopen(ofilename,"w")))
-							{
-
-								tempnode=&lh;
-
-								while(tempnode)
-								{
-									fprintf(iofile,"%d:%d %-40.40s %-40.40s\n",tempnode->num,tempnode->size,tempnode->from,tempnode->subject);
-									tempnode=tempnode->next;
-								}
-
-								printf("Done\n");
-								fclose(iofile);
-							}
-							else perror(ofilename);
-						}
-						else if(ifilename)
-						{
-							printf("\n");
-							if	((iofile=fopen(ifilename,"r")))
-							{
-								printf("You're about to delete all messages specified in '%s', are you sure you this is what you want? ",ifilename);
-								fgets(tmpbuffer,10,stdin);
-								if(tmpbuffer[0]=='y' || tmpbuffer[0]=='Y')
-								{
-									b=0;
-									while(fgets(tmpbuffer,500,iofile))
-									{
-										if(b)	/* If the last line wasn't completely read into the buffer */
-										{
-											if(tmpbuffer[strlen(tmpbuffer)-1]=='\n') b=0;
-											continue;
-										}
-
-										if(tmpbuffer[strlen(tmpbuffer)-1]=='\n') b=0;
-										else b=1;
-
-										for(a=0;a<5;a++) if(tmpbuffer[a]<'0' || tmpbuffer[a]>'9') break;
+		    for (a = 0; a < 5; a++)
+		      if (tmpbuffer[a] < '0' || tmpbuffer[a] > '9')
+			break;
 /* We'll restrict this to messages 0 - 99,999 for now. Just replace the 5 with a 6 if you want support for removing
 	messages up to and including message number 999,999. */
 
-										tmpbuffer[a]=0x00;
+		    tmpbuffer[a] = 0x00;
 
-										if(!a) continue;
+		    if (!a)
+		      continue;
 
-										tmpnum=atoi(tmpbuffer);
-										tmpsize=atoi(&tmpbuffer[a+1]);
+		    tmpnum = atoi (tmpbuffer);
+		    tmpsize = atoi (&tmpbuffer[a + 1]);
 
-										if(!tmpnum || !tmpsize) continue;
+		    if (!tmpnum || !tmpsize)
+		      continue;
 
-										tempnode=&lh;
+		    tempnode = &lh;
 
-										while(tempnode)
-										{
-											if(tempnode->num==tmpnum)
-											{
-												if(tempnode->size==tmpsize) SendCmd("DELE",tmpbuffer);
-												else printf("Wrong messagesize, skipping message %d (%d<=>%d)\n",tmpnum,tmpsize,tempnode->size);
-												break;
-											}
-											tempnode=tempnode->next;
-										}
-									}
-									printf("Done!\n");
-								}
-								else printf("Bailing out!\n");
-							}
-							else perror(ifilename);
-						}
-						else MainProg();
-					}
-				}
-			}
-			else fprintf(stderr,"No messages on POP Host\n");
+		    while (tempnode) {
+		      if (tempnode->num == tmpnum) {
+			if (tempnode->size == tmpsize)
+			  SendCmd ("DELE", tmpbuffer);
+			else
+			  printf
+			    ("Wrong messagesize, skipping message %d (%d<=>%d)\n",
+			     tmpnum, tmpsize, tempnode->size);
+			break;
+		      }
+		      tempnode = tempnode->next;
+		    }
+		  }
+		  printf ("Done!\n");
 		}
-		SocketDisconnect();
+		else
+		  printf ("Bailing out!\n");
+	      }
+	      else
+		perror (ifilename);
+	    }
+	    else
+	      MainProg ();
+	  }
 	}
-	FreeAllNodes();
+      }
+      else
+	fprintf (stderr, "No messages on POP Host\n");
+    }
+    SocketDisconnect ();
+  }
+  FreeAllNodes ();
 
-	exit(0);
+  exit (0);
 }
 
 
 // ----
 
-void MainProg(void)
+void
+MainProg (void)
 {
-	static char formatstr[50];
+  static char formatstr[50];
 
-	static char delstr[]= {	' ', 'D' };
+  static char delstr[] = { ' ', 'D' };
 
-	int	a,c,currentline=0;
-	struct ListNode *tempnode,*currentnode;
+  int a, c, currentline = 0;
+  struct ListNode *tempnode, *currentnode;
 
-	(void) signal(SIGINT, finish);      /* arrange interrupts to terminate */
+  (void) signal (SIGINT, finish);	/* arrange interrupts to terminate */
 
-	(void) initscr();      /* initialize the curses library */
-	keypad(stdscr, TRUE);  /* enable keyboard mapping */
-	(void) nonl();         /* tell curses not to do NL->CR/NL on output */
-	(void) cbreak();       /* take input chars one at a time, no wait for \n */
-	(void) noecho();       /* don't echo input */
-	scrollok(stdscr, TRUE);
+  (void) initscr ();		/* initialize the curses library */
+  keypad (stdscr, TRUE);	/* enable keyboard mapping */
+  (void) nonl ();		/* tell curses not to do NL->CR/NL on output */
+  (void) cbreak ();		/* take input chars one at a time, no wait for \n */
+  (void) noecho ();		/* don't echo input */
+  scrollok (stdscr, TRUE);
 
-	sprintf(formatstr,"%%3d: %%c %%-%2.2d.%2.2ds  %%-%2.2d.%2.2ds   %%6ld",(COLS-18)/2,(COLS-18)/2,(COLS-18)/2,(COLS-18)/2);
+  sprintf (formatstr, "%%3d: %%c %%-%2.2d.%2.2ds  %%-%2.2d.%2.2ds   %%6ld",
+	   (COLS - 18) / 2, (COLS - 18) / 2, (COLS - 18) / 2,
+	   (COLS - 18) / 2);
 
-	move(LINES-1,0);
-	attrset(A_BOLD);
-	addstr("USAGE: Q - Quit without saving  S - Quit and save D - Mark for delete");
-	attrset(A_NORMAL);
+  move (LINES - 1, 0);
+  attrset (A_BOLD);
+  addstr
+    ("USAGE: Q - Quit without saving  S - Quit and save D - Mark for delete");
+  attrset (A_NORMAL);
 
-	currentnode=&lh;
+  currentnode = &lh;
 
-	for (;;)
-	{
-		while(currentline>=LINES-1)
-		{
-			tempnode=currentnode;
-			for(a=0;a<LINES-2;a++)
-				if(tempnode->next)
-					tempnode=tempnode->next;
+  for (;;) {
+    while (currentline >= LINES - 1) {
+      tempnode = currentnode;
+      for (a = 0; a < LINES - 2; a++)
+	if (tempnode->next)
+	  tempnode = tempnode->next;
 
-			if(tempnode->next) currentnode=currentnode->next;
+      if (tempnode->next)
+	currentnode = currentnode->next;
 
-			currentline--;
-		}
+      currentline--;
+    }
 
-		while(currentline<0)
-		{
-			if(currentnode->prev) currentnode=currentnode->prev;
+    while (currentline < 0) {
+      if (currentnode->prev)
+	currentnode = currentnode->prev;
 
-			currentline++;
+      currentline++;
+    }
+
+    while (currentline > MailCount - 1)
+      currentline--;
+
+    tempnode = currentnode;
+    for (a = 0; a < LINES - 1; a++) {
+      if (a == currentline)
+	attrset (A_REVERSE);
+      else
+	attrset (A_NORMAL);
+
+      move (a, 0);
+      clrtoeol ();
+
+      if (tempnode) {
+	printw (formatstr, tempnode->num, delstr[tempnode->del],
+		tempnode->from, tempnode->subject, tempnode->size);
+	tempnode = tempnode->next;
       }
 
-		while(currentline>MailCount-1) currentline--;
+    }
 
-		tempnode=currentnode;
-		for (a = 0; a < LINES-1; a++)
-		{
-			if(a==currentline) attrset(A_REVERSE);
-			else attrset(A_NORMAL);
+    c = getch ();
 
-			move(a, 0);
-			clrtoeol();
+    switch (c) {
+    case 'd':
+      tempnode = currentnode;
 
-			if(tempnode)
-			{
-				printw(formatstr,tempnode->num,delstr[tempnode->del],tempnode->from,tempnode->subject,tempnode->size);
-				tempnode=tempnode->next;
-			}
+      for (a = 0; a < currentline; a++)
+	tempnode = tempnode->next;
 
-		}
+      if (tempnode->del)
+	tempnode->del = 0;
+      else
+	tempnode->del = 1;
 
-		c = getch();
+      currentline++;
+      break;
 
-		switch(c)
-		{
-			case 'd':
-				tempnode=currentnode;
+    case 's':
+      tempnode = &lh;
 
-				for(a=0;a<currentline;a++) tempnode=tempnode->next;
-
-				if(tempnode->del)
-					tempnode->del=0;
-				else
-					tempnode->del=1;
-
-				currentline++;
-				break;
-
-			case 's':
-				tempnode=&lh;
-
-				while(tempnode)
-				{
-					if(tempnode->del)
-					{
-						sprintf(formatstr,"%d",tempnode->num);			/* Convert int to string */
-						SendCmd("DELE",formatstr);
-					}
-					tempnode=tempnode->next;
-				}
-				finish(0);
-				break;
-
-			case 'q':
-				finish(0);
-				break;
-			case KEY_DOWN:
-			case 'n':
-				currentline++;
-            break;
-
-			case KEY_UP:
-			case 'p':
-				currentline--;
-				break;
-
-			case KEY_NPAGE:
-			case ' ':
-				currentline+=LINES-2;
-				break;
-
-			case KEY_PPAGE:
-			case '-':
-				currentline-=LINES-2;
-				break;
-		}
+      while (tempnode) {
+	if (tempnode->del) {
+	  sprintf (formatstr, "%d", tempnode->num);	/* Convert int to string */
+	  SendCmd ("DELE", formatstr);
 	}
+	tempnode = tempnode->next;
+      }
+      finish (0);
+      break;
 
-	finish(0);               /* we're done */
+    case 'q':
+      finish (0);
+      break;
+    case KEY_DOWN:
+    case 'n':
+      currentline++;
+      break;
+
+    case KEY_UP:
+    case 'p':
+      currentline--;
+      break;
+
+    case KEY_NPAGE:
+    case ' ':
+      currentline += LINES - 2;
+      break;
+
+    case KEY_PPAGE:
+    case '-':
+      currentline -= LINES - 2;
+      break;
+    }
+  }
+
+  finish (0);			/* we're done */
 }
 
 
-static void finish(int sig)
+static void
+finish (int sig)
 {
-	SocketDisconnect();
-	FreeAllNodes();
-	endwin();
-	exit(sig != 0);
+  SocketDisconnect ();
+  FreeAllNodes ();
+  endwin ();
+  exit (sig != 0);
 }
 
 
@@ -452,27 +461,26 @@ static void finish(int sig)
 int AddAllNodes(int numof);
 ----------------------------------------------------------------------
 */
-int AddAllNodes(int numof)
+int
+AddAllNodes (int numof)
 {
-	int a;
-	struct ListNode *this;
+  int a;
+  struct ListNode *this;
 
-	this=&lh;
+  this = &lh;
 
-	this->num=1;
+  this->num = 1;
 
-	for(a=2;a<=numof;a++)
-	{
+  for (a = 2; a <= numof; a++) {
 
-		if(!(this=AddNode(this)))
-		{
-			fprintf(stderr,"Out of memory while allocating buffers\n");
-			return(0);
-		}
+    if (!(this = AddNode (this))) {
+      fprintf (stderr, "Out of memory while allocating buffers\n");
+      return (0);
+    }
 
-		this->num=a;
-	}
-	return(1);
+    this->num = a;
+  }
+  return (1);
 }
 
 
@@ -481,18 +489,18 @@ int AddAllNodes(int numof)
 void FreeAllNodes(void);
 ----------------------------------------------------------------------
 */
-void FreeAllNodes(void)
+void
+FreeAllNodes (void)
 {
-	struct ListNode *node,*next;
+  struct ListNode *node, *next;
 
-	node=lh.next;
+  node = lh.next;
 
-	while(node)
-	{
-		next=node->next;
-		free(node);
-		node=next;
-	}
+  while (node) {
+    next = node->next;
+    free (node);
+    node = next;
+  }
 }
 
 /*
@@ -500,26 +508,26 @@ void FreeAllNodes(void)
 struct ListNode *AddNode(struct ListNode *node);
 ----------------------------------------------------------------------
 */
-struct ListNode *AddNode(struct ListNode *node)
+struct ListNode *
+AddNode (struct ListNode *node)
 {
-	struct ListNode *new,*tmp;
+  struct ListNode *new, *tmp;
 
-	if((new=(struct ListNode *)malloc(sizeof(struct ListNode))))
-	{
-		memset(new,0,sizeof(struct ListNode));
+  if ((new = (struct ListNode *) malloc (sizeof (struct ListNode)))) {
+    memset (new, 0, sizeof (struct ListNode));
 
-		if(node->next)
-		{
-			tmp=node->next;
-			new->next=tmp;
-			tmp->prev=new;
-		}
-		node->next=new;
-		new->prev=node;
+    if (node->next) {
+      tmp = node->next;
+      new->next = tmp;
+      tmp->prev = new;
+    }
+    node->next = new;
+    new->prev = node;
 
-		return(new);
-	}
-	else return(0);
+    return (new);
+  }
+  else
+    return (0);
 }
 
 /*
@@ -527,20 +535,20 @@ struct ListNode *AddNode(struct ListNode *node)
 void RemNode(struct ListNode *node);
 ----------------------------------------------------------------------
 */
-void RemNode(struct ListNode *node)
+void
+RemNode (struct ListNode *node)
 {
-	struct ListNode *next,*prev;
+  struct ListNode *next, *prev;
 
-	if(node!=&lh)
-	{
-		next=node->next;
-		prev=node->prev;
+  if (node != &lh) {
+    next = node->next;
+    prev = node->prev;
 
-		free(node);
+    free (node);
 
-		next->prev=prev;
-		prev->next=next;
-	}
+    next->prev = prev;
+    prev->next = next;
+  }
 }
 
 
@@ -549,66 +557,65 @@ void RemNode(struct ListNode *node)
 int SocketConnect(void);
 ----------------------------------------------------------------------
 */
-int SocketConnect(void)
+int
+SocketConnect (void)
 {
-	static int strlen;
-	struct hostent *HostAddr;
+  static int strlen;
+  struct hostent *HostAddr;
 
-	HostAddr = gethostbyname(pophost);
+  HostAddr = gethostbyname (pophost);
 
-	if (!HostAddr)
-	{
-		if (h_errno == TRY_AGAIN)
-			fprintf(stderr,"Unable to locate the POP Host, try again later\n");
-		else
-			fprintf(stderr,"The POP Host is invalid\n");
+  if (!HostAddr) {
+    if (h_errno == TRY_AGAIN)
+      fprintf (stderr, "Unable to locate the POP Host, try again later\n");
+    else
+      fprintf (stderr, "The POP Host is invalid\n");
 
-		return(FALSE);
-	}
+    return (FALSE);
+  }
 
-	INetSocketAddr.sin_family = AF_INET;
-	INetSocketAddr.sin_port = htons(popport);
-	INetSocketAddr.sin_addr.s_addr = 0;
+  INetSocketAddr.sin_family = AF_INET;
+  INetSocketAddr.sin_port = htons (popport);
+  INetSocketAddr.sin_addr.s_addr = 0;
 
-	memcpy(&INetSocketAddr.sin_addr, HostAddr->h_addr, HostAddr->h_length);
+  memcpy (&INetSocketAddr.sin_addr, HostAddr->h_addr, HostAddr->h_length);
 
-	hSocket = socket(AF_INET, SOCK_STREAM, 0);
-	if (hSocket == -1)
-	{
-		perror("Socket allocation failed");
-		return(FALSE);
-	}
+  hSocket = socket (AF_INET, SOCK_STREAM, 0);
+  if (hSocket == -1) {
+    perror ("Socket allocation failed");
+    return (FALSE);
+  }
 
-	if (connect(hSocket, (struct sockaddr *) &INetSocketAddr, sizeof(INetSocketAddr)) == -1)
-	{
-		perror("Socket connection failed");
-		close(hSocket);
-		return(FALSE);
-	}
+  if (connect
+      (hSocket, (struct sockaddr *) &INetSocketAddr,
+       sizeof (INetSocketAddr)) == -1) {
+    perror ("Socket connection failed");
+    close (hSocket);
+    return (FALSE);
+  }
 
-	printf("Sending logon information\n");
+  printf ("Sending logon information\n");
 
-	do																// Get the greeting message.
-	{
-		if (!(strlen=RecvDat(stringbuf, STRBUFLEN))) break;
-	}
-	while (stringbuf[strlen - 1] != '\n');
+  do				// Get the greeting message.
+  {
+    if (!(strlen = RecvDat (stringbuf, STRBUFLEN)))
+      break;
+  }
+  while (stringbuf[strlen - 1] != '\n');
 
-	if (SendCmd("USER",popuser)==-1)
-	{
-		SocketDisconnect();
-		return(FALSE);		// Send UserID.
-	}
+  if (SendCmd ("USER", popuser) == -1) {
+    SocketDisconnect ();
+    return (FALSE);		// Send UserID.
+  }
 
-	if (SendCmd("PASS",poppass)==-1)
-	{
-		SocketDisconnect();
-		return(FALSE);	// Send Password.
-	}
+  if (SendCmd ("PASS", poppass) == -1) {
+    SocketDisconnect ();
+    return (FALSE);		// Send Password.
+  }
 
-	printf("Connected to POP Host\n");
+  printf ("Connected to POP Host\n");
 
-	return(TRUE);
+  return (TRUE);
 }
 
 /*
@@ -616,18 +623,18 @@ int SocketConnect(void)
 void SocketDisconnect(void);
 ----------------------------------------------------------------------
 */
-void SocketDisconnect(void)
+void
+SocketDisconnect (void)
 {
-	if (hSocket != SMTP_NO_SOCKET)
-	{
-		SendCmd("QUIT", NULL);
-		shutdown(hSocket, 2);
+  if (hSocket != SMTP_NO_SOCKET) {
+    SendCmd ("QUIT", NULL);
+    shutdown (hSocket, 2);
 
-		close(hSocket);
+    close (hSocket);
 
-		printf("Disconnected from POP Host\n");
-	}
-	return;
+    printf ("Disconnected from POP Host\n");
+  }
+  return;
 }
 
 
@@ -636,109 +643,110 @@ void SocketDisconnect(void)
 int SendCmd(char *cmd, char *parm);
 ----------------------------------------------------------------------
 */
-int SendCmd(char *cmd, char *parm)
+int
+SendCmd (char *cmd, char *parm)
 {
-	static char StrBuf[4096];
-	static int StrLen;
-	static char buffer[50];
-	int a,reset=1;
-	struct ListNode *node;
-	char *tmpbuf;
+  static char StrBuf[4096];
+  static int StrLen;
+  static char buffer[50];
+  int a, reset = 1;
+  struct ListNode *node;
+  char *tmpbuf;
 
-	if (hSocket == SMTP_NO_SOCKET) return(0);
+  if (hSocket == SMTP_NO_SOCKET)
+    return (0);
 
-	if(!parm)
-		sprintf(buffer,"%s\r\n",cmd);
-	else if(!strncmp("TOP",cmd,3))
-	{
-		sprintf(buffer,"%s %s 0\r\n",cmd,parm);
-	}
-	else sprintf(buffer,"%s %s\r\n",cmd,parm);
+  if (!parm)
+    sprintf (buffer, "%s\r\n", cmd);
+  else if (!strncmp ("TOP", cmd, 3)) {
+    sprintf (buffer, "%s %s 0\r\n", cmd, parm);
+  }
+  else
+    sprintf (buffer, "%s %s\r\n", cmd, parm);
 
-	if(!SendDat(buffer)) return(0);
+  if (!SendDat (buffer))
+    return (0);
 
-	if (!(StrLen=RecvDat(StrBuf,4096))) return(0);
+  if (!(StrLen = RecvDat (StrBuf, 4096)))
+    return (0);
 
-	if(!strncmp(StrBuf,"-ERR",4))
-	{
-		fprintf(stderr, "Bad %s command response: %s\n", cmd, StrBuf);
-		return(-1);
-	}
+  if (!strncmp (StrBuf, "-ERR", 4)) {
+    fprintf (stderr, "Bad %s command response: %s\n", cmd, StrBuf);
+    return (-1);
+  }
 
-	// How many messages ?
-	if(!strncmp(cmd,"STAT",4)) return(atoi(&StrBuf[4]));
+  // How many messages ?
+  if (!strncmp (cmd, "STAT", 4))
+    return (atoi (&StrBuf[4]));
 
-	if(!strncmp(cmd,"LIST",4))
-	{
-		for(;;)
-		{
-			if(!fwrite(StrBuf,StrLen,1,file))
-			{
-				perror("Tempfile");
-				return(-1);
-			}
+  if (!strncmp (cmd, "LIST", 4)) {
+    for (;;) {
+      if (!fwrite (StrBuf, StrLen, 1, file)) {
+	perror ("Tempfile");
+	return (-1);
+      }
 
-			if(!strncmp("\r\n.\r\n",&StrBuf[StrLen - 5],5)) break;
+      if (!strncmp ("\r\n.\r\n", &StrBuf[StrLen - 5], 5))
+	break;
 
-			if (!(StrLen=RecvDat(StrBuf,4096))) return(0);
-		}
+      if (!(StrLen = RecvDat (StrBuf, 4096)))
+	return (0);
+    }
 
-		if((StrLen=ftell(file))==-1)
-		{
-			perror("Tempfile");
-			return(-1);
-		}
+    if ((StrLen = ftell (file)) == -1) {
+      perror ("Tempfile");
+      return (-1);
+    }
 
-		if(!(tmpbuf=(char *)malloc(StrLen)))
-		{
-			fprintf(stderr,"Could not allocate memory for tempfile\n");
-			return(-1);
-		}
+    if (!(tmpbuf = (char *) malloc (StrLen))) {
+      fprintf (stderr, "Could not allocate memory for tempfile\n");
+      return (-1);
+    }
 
-		rewind(file);
+    rewind (file);
 
-		if(!fread(tmpbuf,StrLen,1,file))
-		{
-			free(tmpbuf);
-			perror("Tempfile");
-			return(-1);
-		}
+    if (!fread (tmpbuf, StrLen, 1, file)) {
+      free (tmpbuf);
+      perror ("Tempfile");
+      return (-1);
+    }
 
-		node=&lh;
+    node = &lh;
 
-		for(a=0;tmpbuf[a]!='\n';a++);
+    for (a = 0; tmpbuf[a] != '\n'; a++);
 
-		for(;(a<StrLen) && (node);a++)
-		{
-			if(tmpbuf[a]=='.') break;
+    for (; (a < StrLen) && (node); a++) {
+      if (tmpbuf[a] == '.')
+	break;
 
-			for(;tmpbuf[a++]!=' ';);
-			node->size=atoi(&tmpbuf[a]);
+      for (; tmpbuf[a++] != ' ';);
+      node->size = atoi (&tmpbuf[a]);
 
-			for(;tmpbuf[a]!='\n';a++);
-			node=node->next;
-		}
+      for (; tmpbuf[a] != '\n'; a++);
+      node = node->next;
+    }
 
-		free(tmpbuf);
-		return(0);
-	}
+    free (tmpbuf);
+    return (0);
+  }
 
-	if(!strncmp(cmd,"TOP",3))
-	{
-		do
-		{
-			LocateHeaders(StrBuf,StrLen,reset);
-			reset=0;
+  if (!strncmp (cmd, "TOP", 3)) {
+    do {
+      LocateHeaders (StrBuf, StrLen, reset);
+      reset = 0;
 
-			if((StrLen==3) && (!strncmp(".\r\n",&StrBuf[StrLen - 3],3))) break;
-			if(!strncmp("\r\n.\r\n",&StrBuf[StrLen - 5],5)) break;
+      if ((StrLen == 3) && (!strncmp (".\r\n", &StrBuf[StrLen - 3], 3)))
+	break;
+      if (!strncmp ("\r\n.\r\n", &StrBuf[StrLen - 5], 5))
+	break;
 
-			if (!(StrLen=RecvDat(StrBuf,4096))) return(0);
-		}
-		while(1);
-	}
+      if (!(StrLen = RecvDat (StrBuf, 4096)))
+	return (0);
+    }
+    while (1);
+  }
 
-	return(0);
+  return (0);
 }
 
 
@@ -747,12 +755,15 @@ int SendCmd(char *cmd, char *parm)
 int SendDat(char *string);
 ----------------------------------------------------------------------
 */
-int SendDat(char *string)
+int
+SendDat (char *string)
 {
-	if (hSocket == SMTP_NO_SOCKET) return(FALSE);
-	if(send(hSocket, string, strlen(string),0) != -1) return(TRUE);
-	fprintf(stderr,"Socket message send failure\n");
-	return(FALSE);
+  if (hSocket == SMTP_NO_SOCKET)
+    return (FALSE);
+  if (send (hSocket, string, strlen (string), 0) != -1)
+    return (TRUE);
+  fprintf (stderr, "Socket message send failure\n");
+  return (FALSE);
 }
 
 /*
@@ -760,17 +771,19 @@ int SendDat(char *string)
 int RecvDat(char *databuf,int datlen);
 ----------------------------------------------------------------------
 */
-int RecvDat(char *databuf,int datlen)
+int
+RecvDat (char *databuf, int datlen)
 {
-	int reclen;
+  int reclen;
 
-	if(hSocket==SMTP_NO_SOCKET) return(FALSE);
-	reclen=recv(hSocket, databuf, datlen-1, 0);
+  if (hSocket == SMTP_NO_SOCKET)
+    return (FALSE);
+  reclen = recv (hSocket, databuf, datlen - 1, 0);
 
-	if(reclen)
-		databuf[reclen] = 0x00;
+  if (reclen)
+    databuf[reclen] = 0x00;
 
-	return(reclen);
+  return (reclen);
 }
 
 /*
@@ -808,95 +821,85 @@ prnl   - Previous newline. Used to indicate that a newline has
 
 ----------------------------------------------------------------------
 */
-void LocateHeaders(char *buffer, int buflen, int reset)
+void
+LocateHeaders (char *buffer, int buflen, int reset)
 {
-	static char frtext[] = "From:";
-	static char sutext[] = "Subject:";
-	static int suptr=0;		/* Subject pointer index */
-	static int sutr=0;		/* Subject true */
-	static int subptr=0;		/* Subject buffer pointer index */
-	static int frptr=0;		/* From pointer index */
-	static int frtr=0;		/* From true */
-	static int prnl=1;		/* Previous newline */
-	static int frbptr=0;		/* From buffer pointer index */
-	int b;
+  static char frtext[] = "From:";
+  static char sutext[] = "Subject:";
+  static int suptr = 0;		/* Subject pointer index */
+  static int sutr = 0;		/* Subject true */
+  static int subptr = 0;	/* Subject buffer pointer index */
+  static int frptr = 0;		/* From pointer index */
+  static int frtr = 0;		/* From true */
+  static int prnl = 1;		/* Previous newline */
+  static int frbptr = 0;	/* From buffer pointer index */
+  int b;
 
-	if(reset)
-	{
-		suptr=0;sutr=0;subptr=0;
-		frptr=0;frtr=0;frbptr=0;
-		prnl=1;
+  if (reset) {
+    suptr = 0;
+    sutr = 0;
+    subptr = 0;
+    frptr = 0;
+    frtr = 0;
+    frbptr = 0;
+    prnl = 1;
+  }
+
+  for (b = 0; b < buflen; b++) {	/* Real routine starts here */
+    if (frtr) {			/* If from string has been found (frtext) */
+      if (prnl) {		/* Check for continued header line */
+	if (buffer[b] == ' ')
+	  prnl = 0;
+	else
+	  frtr = 0;
+      }
+      else {
+	if ((buffer[b] != '\n') && (buffer[b] != '\r')) {
+	  TopFrom[frbptr++] = buffer[b];
+	  if (frbptr > 50)
+	    frtr = 0;		/* Stop if line is longer than 50 chars */
 	}
+      }
+    }
 
-	for(b=0;b<buflen;b++)	/* Real routine starts here */
-	{
-		if(frtr)					/* If from string has been found (frtext) */
-		{
-			if(prnl)				/* Check for continued header line */
-			{
-				if(buffer[b]==' ')
-				{
-					prnl=0;
-				}
-				else frtr=0;
-			}
-			else
-			{
-				if((buffer[b]!='\n') && (buffer[b]!='\r'))
-				{
-					TopFrom[frbptr++]=buffer[b];
-					if(frbptr>50) frtr=0;				/* Stop if line is longer than 50 chars */
-				}
-			}
-		}
+    if (sutr) {			/* If subject string has been found (sutext) */
+      if (prnl) {		/* Check for continued header line */
+	if (buffer[b] == ' ')
+	  prnl = 0;
+	else
+	  sutr = 0;
+      }
+      else {
+	if ((buffer[b] != '\n') && (buffer[b] != '\r')) {
+	  TopSubject[subptr++] = buffer[b];
+	  if (subptr > 50)
+	    sutr = 0;		/* Stop if line is longer than 50 chars */
+	}
+      }
+    }
 
-		if(sutr)					/* If subject string has been found (sutext) */
-		{
-			if(prnl)				/* Check for continued header line */
-			{
-				if(buffer[b]==' ')
-				{
-					prnl=0;
-				}
-				else sutr=0;
-			}
-			else
-			{
-				if((buffer[b]!='\n') && (buffer[b]!='\r'))
-				{
-					TopSubject[subptr++]=buffer[b];
-					if(subptr>50) sutr=0;				/* Stop if line is longer than 50 chars */
-				}
-			}
-		}
-
-		if(prnl)
-		{
-			if((!suptr) && (!strncasecmp(&buffer[b],&frtext[frptr],1)))
-			{
-				if(frtext[++frptr]==0x00)
-				{
-					frptr=0;
-					frtr=1;
-					prnl=0;
-				}
-			}
-			else if((!frptr) && (!strncasecmp(&buffer[b],&sutext[suptr],1)))
-			{
-				if(sutext[++suptr]==0x00)
-				{
-					suptr=0;
-					sutr=1;
-					prnl=0;
-				}
-			}
-			else
-			{
-				prnl=0;
-				frptr=0;
-				suptr=0;
-			}
-		}
-		if(buffer[b]=='\n') prnl=1;
-	}								/* Real routine ends here */
+    if (prnl) {
+      if ((!suptr) && (!strncasecmp (&buffer[b], &frtext[frptr], 1))) {
+	if (frtext[++frptr] == 0x00) {
+	  frptr = 0;
+	  frtr = 1;
+	  prnl = 0;
+	}
+      }
+      else if ((!frptr) && (!strncasecmp (&buffer[b], &sutext[suptr], 1))) {
+	if (sutext[++suptr] == 0x00) {
+	  suptr = 0;
+	  sutr = 1;
+	  prnl = 0;
+	}
+      }
+      else {
+	prnl = 0;
+	frptr = 0;
+	suptr = 0;
+      }
+    }
+    if (buffer[b] == '\n')
+      prnl = 1;
+  }				/* Real routine ends here */
 }
