@@ -114,7 +114,7 @@ main (int argc, char *argv[])
   char sw;
   long int a, b;
   int tmpnum, tmpsize;
-  char tmpbuf[10];
+  char *tmpbuf;
 
   struct ListNode *tempnode;
   struct termios oldTermios, newTermios;
@@ -194,7 +194,9 @@ main (int argc, char *argv[])
 	    printf ("Getting data for message:\n");
 
 	    for (b = 1; b <= a; b++) {
-	      sprintf (tmpbuf, "%ld", b);	/* Convert int to string */
+              int ret;
+
+	      assert (asprintf (&tmpbuf, "%ld", b) >= 0);	/* Convert int to string */
 
 	      TopFrom = tempnode->from;
 	      TopSubject = tempnode->subject;
@@ -202,7 +204,9 @@ main (int argc, char *argv[])
 	      printf ("\r%ld of %ld", b, a);
 	      fflush (stdout);
 
-	      if ((SendCmd ("TOP", tmpbuf)) == -1)
+	      ret = SendCmd ("TOP", tmpbuf);
+              free (tmpbuf);
+	      if (ret == -1)
 		break;
 
 	      tempnode = tempnode->next;
@@ -312,7 +316,7 @@ main (int argc, char *argv[])
 noreturn void
 MainProg (void)
 {
-  static char formatstr[50];
+  static char *formatstr;
 
   static char delstr[] = { ' ', 'D' };
 
@@ -328,9 +332,9 @@ MainProg (void)
   (void) noecho ();		/* don't echo input */
   scrollok (stdscr, TRUE);
 
-  sprintf (formatstr, "%%3d: %%c %%-%2.2d.%2.2ds  %%-%2.2d.%2.2ds   %%6ld",
-	   (COLS - 18) / 2, (COLS - 18) / 2, (COLS - 18) / 2,
-	   (COLS - 18) / 2);
+  assert (asprintf (&formatstr, "%%3d: %%c %%-%2.2d.%2.2ds  %%-%2.2d.%2.2ds   %%6ld",
+                    (COLS - 18) / 2, (COLS - 18) / 2, (COLS - 18) / 2,
+                    (COLS - 18) / 2) >= 0);
 
   move (LINES - 1, 0);
   attrset (A_BOLD);
@@ -380,6 +384,8 @@ MainProg (void)
 
     }
 
+    free (formatstr);
+
     c = getch ();
 
     switch (c) {
@@ -402,8 +408,9 @@ MainProg (void)
 
       while (tempnode) {
 	if (tempnode->del) {
-	  sprintf (formatstr, "%d", tempnode->num);	/* Convert int to string */
+	  assert (asprintf (&formatstr, "%d", tempnode->num) >= 0);	/* Convert int to string */
 	  SendCmd ("DELE", formatstr);
+          free (formatstr);
 	}
 	tempnode = tempnode->next;
       }
@@ -607,8 +614,8 @@ SendCmd (const char *cmd, char *parm)
 {
   static char StrBuf[4096];
   static int StrLen;
-  static char buffer[50];
-  int a, reset = 1;
+  static char *buffer;
+  int a, reset = 1, ret;
   struct ListNode *node;
   char *tmpbuf;
 
@@ -616,14 +623,15 @@ SendCmd (const char *cmd, char *parm)
     return (0);
 
   if (!parm)
-    sprintf (buffer, "%s\r\n", cmd);
-  else if (!strncmp ("TOP", cmd, 3)) {
-    sprintf (buffer, "%s %s 0\r\n", cmd, parm);
-  }
+    assert (asprintf (&buffer, "%s\r\n", cmd) >= 0);
+  else if (!strncmp ("TOP", cmd, 3))
+    assert (asprintf (&buffer, "%s %s 0\r\n", cmd, parm) >= 0);
   else
-    sprintf (buffer, "%s %s\r\n", cmd, parm);
+    assert (asprintf (&buffer, "%s %s\r\n", cmd, parm) >= 0);
 
-  if (!SendDat (buffer))
+  ret = SendDat (buffer);
+  free (buffer);
+  if (!ret)
     return (0);
 
   if (!(StrLen = RecvDat (StrBuf, 4096)))
