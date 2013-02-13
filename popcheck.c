@@ -38,19 +38,12 @@
 #include <sys/wait.h>
 #include <sys/time.h>
 #include <unistd.h>
-
-/* { W.Hoelzl */
 #include <termios.h>
-/* } W.Hoelzl */
-
 #include <curses.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <signal.h>
-
-// #define TRUE	1
-// #define FALSE	0
 
 #define STRBUFLEN 200
 #define DATBUF_SIZE 1024
@@ -99,10 +92,6 @@ struct sockaddr_in INetSocketAddr;
 static char stringbuf[STRBUFLEN];
 static char *TopSubject;
 static char *TopFrom;
-/*
-static struct timeval TV;
-static struct timezone TZ;
-*/
 static struct ListNode lh;
 
 static FILE *file, *iofile;
@@ -131,9 +120,7 @@ int main(int argc, char *argv[])
 	char tmpbuf[10];
 
 	struct ListNode *tempnode;
-/* { W.Hoelzl */
 	struct termios oldTermios,newTermios;
-/* } W.Hoelzl */
 
 	lh.next=NULL;
 	lh.prev=NULL;
@@ -173,7 +160,6 @@ int main(int argc, char *argv[])
 	if(!poppass)
 	{
 
-/* { W.Hoelzl */
 		/* Get the current state of termios */
 		tcgetattr(STDIN_FILENO,&newTermios);
 		/* Keep a copy of the current setting of termios */
@@ -184,15 +170,12 @@ int main(int argc, char *argv[])
 		newTermios.c_lflag |= ECHONL;
 		/* activate new termios */
 		tcsetattr(STDIN_FILENO,TCSAFLUSH,&newTermios);
-/* } W.Hoelzl */
 
 		printf("POP Password: ");
 		fgets(passbuff,40,stdin);
 
-/* { W.Hoelzl */
 		/* reset to old termios */
 		tcsetattr(STDIN_FILENO,TCSANOW,&oldTermios);
-/* } W.Hoelzl */
 
 		poppass=passbuff;
 		for(a=0;(passbuff[a]!=0x00) &&(passbuff[a]!=0x0A);a++);
@@ -208,9 +191,6 @@ int main(int argc, char *argv[])
 
 	if(SocketConnect())
 	{
-//					gettimeofday(&TV,&TZ);
-//					printf("BALL: %ld:%ld\n",TV.tv_sec,TV.tv_usec);
-
 		if((a=SendCmd("STAT",NULL))!=-1)
 		{
 			if(a)
@@ -227,9 +207,6 @@ int main(int argc, char *argv[])
 						{
 							sprintf(tmpbuf,"%ld",b);			/* Convert int to string */
 
-//							gettimeofday(&TV,&TZ);
-//							printf("BT: %ld:%ld\n",TV.tv_sec,TV.tv_usec);
-
 							TopFrom=tempnode->from;
 							TopSubject=tempnode->subject;
 
@@ -239,9 +216,6 @@ int main(int argc, char *argv[])
 							if((SendCmd("TOP",tmpbuf))==-1) break;
 
 							tempnode=tempnode->next;
-
-//							gettimeofday(&TV,&TZ);
-//							printf("AT: %ld:%ld\n",TV.tv_sec,TV.tv_usec);
 						}
 
 						MailCount=a;
@@ -353,7 +327,6 @@ void MainProg(void)
 	(void) noecho();       /* don't echo input */
 	scrollok(stdscr, TRUE);
 
-//    "%3d: %c %-40.40s  %-40.40s   %6ld" 18
 	sprintf(formatstr,"%%3d: %%c %%-%2.2d.%2.2ds  %%-%2.2d.%2.2ds   %%6ld",(COLS-18)/2,(COLS-18)/2,(COLS-18)/2,(COLS-18)/2);
 
 	move(LINES-1,0);
@@ -593,7 +566,6 @@ int SocketConnect(void)
 		return(FALSE);
 	}
 
-//	INetSocketAddr.sin_len = sizeof(INetSocketAddr);
 	INetSocketAddr.sin_family = AF_INET;
 	INetSocketAddr.sin_port = htons(popport);
 	INetSocketAddr.sin_addr.s_addr = 0;
@@ -731,7 +703,6 @@ int SendCmd(char *cmd, char *parm)
 			perror("Tempfile");
 			return(-1);
 		}
-//		fclose(file);
 
 		node=&lh;
 
@@ -762,15 +733,7 @@ int SendCmd(char *cmd, char *parm)
 			if((StrLen==3) && (!strncmp(".\r\n",&StrBuf[StrLen - 3],3))) break;
 			if(!strncmp("\r\n.\r\n",&StrBuf[StrLen - 5],5)) break;
 
-//				gettimeofday(&TV,&TZ);
-//				printf("BRC: %ld:%ld\n",TV.tv_sec,TV.tv_usec);
-
 			if (!(StrLen=RecvDat(StrBuf,4096))) return(0);
-
-
-//				gettimeofday(&TV,&TZ);
-//				printf("ARC: %ld:%ld\n",TV.tv_sec,TV.tv_usec);
-
 		}
 		while(1);
 	}
@@ -874,7 +837,6 @@ void LocateHeaders(char *buffer, int buflen, int reset)
 				if(buffer[b]==' ')
 				{
 					prnl=0;
-//					TopFrom[frbptr++]=' ';
 				}
 				else frtr=0;
 			}
@@ -895,7 +857,6 @@ void LocateHeaders(char *buffer, int buflen, int reset)
 				if(buffer[b]==' ')
 				{
 					prnl=0;
-//					TopSubject[subptr++]=' ';
 				}
 				else sutr=0;
 			}
