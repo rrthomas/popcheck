@@ -1,0 +1,48 @@
+
+PopCheck 1.4
+
+Installation
+======
+Copy the compiled program and the manpage to wherever you like.
+
+Commandline options
+===================
+Usage: popcheck [-s server] [-P port] [-u user] [-p password] [-o filename] [-i filename]
+
+-s and -u are the only ones that are required. Popcheck will ask you for
+a password if it isn't supplied on the command line. The port defaults
+to 110 (the standard for POP3).
+
+-o and -i are for batch mode. Use with caution, because you can easily
+delete all your mail using this function.
+
+Keys when using the curses interface
+====================================
+UP, p       - Up one line
+DOWN, n     - Down one line
+PGUP, -     - Up one page
+PGDN, space - Down one page
+d           - Mark/Unmark message
+s           - Exit and save changes
+q           - Exit without saving anything
+
+
+Batch mode
+==========
+* Run popcheck with the -o switch first to make a textfile with all
+  messages, including numbers and sizes.
+
+* Edit this file and remove all lines describing mail you want to keep.
+
+* Make sure the only lines in the file are those describing the mails you
+  want to REMOVE. Please double-check because there is no turning-back
+  after you execute popcheck with the -i switch.
+
+* Run popcheck with the -i switch. All messages matching the message
+  numbers and sizes (in the file) will be removed from the POP server.
+
+Please note that you run this program on your own risk. It's very easy
+to remove messages that you want to remove, but also to remove messages
+that you didn't want to remove. BE CAREFUL.
+
+Staffan Hämälä 1999-05-19
