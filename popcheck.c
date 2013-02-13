@@ -27,11 +27,12 @@
 
 #include "config.h"
 
+#include <assert.h>
+#include <stdnoreturn.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
-
 #include <stdio.h>
 #include <time.h>
 #include <errno.h>
@@ -46,7 +47,6 @@
 #include <signal.h>
 
 #define STRBUFLEN 200
-#define DATBUF_SIZE 1024
 #define SMTP_NO_SOCKET -1
 
 /* Structure definitions */
@@ -64,7 +64,7 @@ struct ListNode
 
 /* Own functions */
 
-int SendCmd (char *cmd, char *parm);
+int SendCmd (const char *cmd, char *parm);
 int SendDat (char *string);
 int RecvDat (char *databuf, int datlen);
 void SocketDisconnect (void);
@@ -80,8 +80,6 @@ void MainProg (void);
 
 
 /* Global variables */
-
-extern int h_errno;
 
 static char *pophost = 0, *popuser = 0, *poppass = 0, *ifilename =
   0, *ofilename = 0;
@@ -101,8 +99,7 @@ static char tmpbuffer[500];
 
 static long MailCount;
 
-static char *USAGE_STRING =
-  "Usage: %s [-s server] [-P port] [-u user] [-p password] [-o filename] [-i filename]\n";
+#define USAGE_STRING "Usage: %s [-s server] [-P port] [-u user] [-p password] [-o filename] [-i filename]\n"
 
 
 /*
@@ -114,8 +111,6 @@ static char *USAGE_STRING =
 int
 main (int argc, char *argv[])
 {
-  extern int optind;
-  extern char *optarg;
   char progname[] = "popcheck";
   char sw;
   long int a, b;
@@ -151,6 +146,8 @@ main (int argc, char *argv[])
     case '?':			/* Unknown switch */
       fprintf (stderr, USAGE_STRING, progname);
       exit (1);
+    default:
+      break;
     }
 
   if ((!pophost) || (!popuser)) {
@@ -172,7 +169,7 @@ main (int argc, char *argv[])
     tcsetattr (STDIN_FILENO, TCSAFLUSH, &newTermios);
 
     printf ("POP Password: ");
-    fgets (passbuff, 40, stdin);
+    assert (fgets (passbuff, 40, stdin));
 
     /* reset to old termios */
     tcsetattr (STDIN_FILENO, TCSANOW, &oldTermios);
@@ -241,7 +238,7 @@ main (int argc, char *argv[])
 		printf
 		  ("You're about to delete all messages specified in '%s', are you sure you this is what you want? ",
 		   ifilename);
-		fgets (tmpbuffer, 10, stdin);
+		assert (fgets (tmpbuffer, 10, stdin));
 		if (tmpbuffer[0] == 'y' || tmpbuffer[0] == 'Y') {
 		  b = 0;
 		  while (fgets (tmpbuffer, 500, iofile)) {
@@ -314,7 +311,7 @@ main (int argc, char *argv[])
 
 // ----
 
-void
+noreturn void
 MainProg (void)
 {
   static char formatstr[50];
@@ -438,6 +435,9 @@ MainProg (void)
     case '-':
       currentline -= LINES - 2;
       break;
+
+    default:
+      break;
     }
   }
 
@@ -455,12 +455,6 @@ finish (int sig)
 }
 
 
-
-/*
-----------------------------------------------------------------------
-int AddAllNodes(int numof);
-----------------------------------------------------------------------
-*/
 int
 AddAllNodes (int numof)
 {
@@ -484,11 +478,6 @@ AddAllNodes (int numof)
 }
 
 
-/*
-----------------------------------------------------------------------
-void FreeAllNodes(void);
-----------------------------------------------------------------------
-*/
 void
 FreeAllNodes (void)
 {
@@ -503,11 +492,6 @@ FreeAllNodes (void)
   }
 }
 
-/*
-----------------------------------------------------------------------
-struct ListNode *AddNode(struct ListNode *node);
-----------------------------------------------------------------------
-*/
 struct ListNode *
 AddNode (struct ListNode *node)
 {
@@ -530,11 +514,6 @@ AddNode (struct ListNode *node)
     return (0);
 }
 
-/*
-----------------------------------------------------------------------
-void RemNode(struct ListNode *node);
-----------------------------------------------------------------------
-*/
 void
 RemNode (struct ListNode *node)
 {
@@ -552,11 +531,6 @@ RemNode (struct ListNode *node)
 }
 
 
-/*
-----------------------------------------------------------------------
-int SocketConnect(void);
-----------------------------------------------------------------------
-*/
 int
 SocketConnect (void)
 {
@@ -618,11 +592,6 @@ SocketConnect (void)
   return (TRUE);
 }
 
-/*
-----------------------------------------------------------------------
-void SocketDisconnect(void);
-----------------------------------------------------------------------
-*/
 void
 SocketDisconnect (void)
 {
@@ -638,13 +607,8 @@ SocketDisconnect (void)
 }
 
 
-/*
-----------------------------------------------------------------------
-int SendCmd(char *cmd, char *parm);
-----------------------------------------------------------------------
-*/
 int
-SendCmd (char *cmd, char *parm)
+SendCmd (const char *cmd, char *parm)
 {
   static char StrBuf[4096];
   static int StrLen;
@@ -750,11 +714,6 @@ SendCmd (char *cmd, char *parm)
 }
 
 
-/*
-----------------------------------------------------------------------
-int SendDat(char *string);
-----------------------------------------------------------------------
-*/
 int
 SendDat (char *string)
 {
@@ -766,11 +725,6 @@ SendDat (char *string)
   return (FALSE);
 }
 
-/*
-----------------------------------------------------------------------
-int RecvDat(char *databuf,int datlen);
-----------------------------------------------------------------------
-*/
 int
 RecvDat (char *databuf, int datlen)
 {
@@ -788,8 +742,6 @@ RecvDat (char *databuf, int datlen)
 
 /*
 ----------------------------------------------------------------------
-void LocateHeaders(char *buffer, int buflen, int reset);
-
 Scans the buffer for the header lines From and Subject.
 Subsequent calls will go on searching at the same position that
 the buffer for the last call ended. So, if all of the header lines
