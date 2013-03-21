@@ -612,7 +612,7 @@ SocketDisconnect (void)
 int
 SendCmd (const char *cmd, char *parm)
 {
-  static char StrBuf[4096];
+  static char StrBuf[BUFSIZ];
   static int StrLen;
   static char *buffer;
   int a, reset = 1, ret;
@@ -634,7 +634,7 @@ SendCmd (const char *cmd, char *parm)
   if (!ret)
     return (0);
 
-  if (!(StrLen = RecvDat (StrBuf, 4096)))
+  if (!(StrLen = RecvDat (StrBuf, BUFSIZ)))
     return (0);
 
   if (!strncmp (StrBuf, "-ERR", 4)) {
@@ -656,7 +656,7 @@ SendCmd (const char *cmd, char *parm)
       if (!strncmp ("\r\n.\r\n", &StrBuf[StrLen - 5], 5))
         break;
 
-      if (!(StrLen = RecvDat (StrBuf, 4096)))
+      if (!(StrLen = RecvDat (StrBuf, BUFSIZ)))
         return (0);
     }
 
@@ -707,7 +707,7 @@ SendCmd (const char *cmd, char *parm)
       if (!strncmp ("\r\n.\r\n", &StrBuf[StrLen - 5], 5))
         break;
 
-      if (!(StrLen = RecvDat (StrBuf, 4096)))
+      if (!(StrLen = RecvDat (StrBuf, BUFSIZ)))
         return (0);
     }
     while (1);
