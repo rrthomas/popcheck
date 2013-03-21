@@ -384,8 +384,6 @@ MainProg (void)
 
     }
 
-    free (formatstr);
-
     c = getch ();
 
     switch (c) {
@@ -444,6 +442,8 @@ MainProg (void)
       break;
     }
   }
+
+  free (formatstr);
 
   finish (0);			/* we're done */
 }
