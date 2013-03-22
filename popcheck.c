@@ -220,11 +220,9 @@ main (int argc, char *argv[])
 
             printf ("Done\n");
             fclose (iofile);
-          }
-          else
+          } else
             perror (ofilename);
-        }
-        else if (ifilename) {
+        } else if (ifilename) {
           printf ("\n");
           if ((iofile = fopen (ifilename, "r"))) {
             printf
@@ -264,17 +262,13 @@ main (int argc, char *argv[])
                 }
               }
               printf ("Done!\n");
-            }
-            else
+            } else
               printf ("Bailing out!\n");
-          }
-          else
+          } else
             perror (ifilename);
-        }
-        else
+        } else
           MainProg ();
-      }
-      else
+      } else
         fprintf (stderr, "No messages on POP Host\n");
     }
     SocketDisconnect ();
@@ -583,9 +577,7 @@ SendCmd (const char *cmd, char *parm)
     }
 
     free (tmpbuf);
-  }
-
-  else if (!strncmp (cmd, "TOP", 3)) {
+  } else if (!strncmp (cmd, "TOP", 3)) {
     int reset = 1;
     do {
       LocateHeaders (StrBuf, StrLen, reset);
@@ -679,8 +671,7 @@ LocateHeaders (char *buffer, int buflen, int reset)
           prnl = 0;
         else
           frtr = 0;
-      }
-      else {
+      } else {
         if ((buffer[b] != '\n') && (buffer[b] != '\r')) {
           TopFrom[frbptr++] = buffer[b];
           if (frbptr > 50)
@@ -695,8 +686,7 @@ LocateHeaders (char *buffer, int buflen, int reset)
           prnl = 0;
         else
           sutr = 0;
-      }
-      else {
+      } else {
         if ((buffer[b] != '\n') && (buffer[b] != '\r')) {
           TopSubject[subptr++] = buffer[b];
           if (subptr > 50)
@@ -712,15 +702,13 @@ LocateHeaders (char *buffer, int buflen, int reset)
           frtr = 1;
           prnl = 0;
         }
-      }
-      else if ((!frptr) && (!strncasecmp (&buffer[b], &sutext[suptr], 1))) {
+      } else if ((!frptr) && (!strncasecmp (&buffer[b], &sutext[suptr], 1))) {
         if (sutext[++suptr] == 0x00) {
           suptr = 0;
           sutr = 1;
           prnl = 0;
         }
-      }
-      else {
+      } else {
         prnl = 0;
         frptr = 0;
         suptr = 0;
