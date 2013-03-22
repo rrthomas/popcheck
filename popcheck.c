@@ -635,10 +635,7 @@ int
 RecvDat (char *databuf, int datlen)
 {
   int reclen = recv (hSocket, databuf, datlen - 1, 0);
-
-  if (reclen)
-    databuf[reclen] = 0x00;
-
+  databuf[reclen] = 0x00;
   return (reclen);
 }
 
