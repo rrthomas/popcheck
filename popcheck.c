@@ -58,7 +58,6 @@ struct Message
   char subject[60];
   char from[60];
   int size;
-  int num;
   int del;
 };
 
@@ -431,7 +430,7 @@ MainProg (void)
       clrtoeol ();
 
       if (n < MailCount) {
-        printw (formatstr, msgs[n].num, delstr[msgs[n].del],
+        printw (formatstr, n + 1, delstr[msgs[n].del],
                 msgs[n].from, msgs[n].subject, msgs[n].size);
         n++;
       }
@@ -455,7 +454,7 @@ MainProg (void)
     case 's':
       for (n = 0; n < MailCount; n++) {
         if (msgs[n].del) {
-          assert (asprintf (&formatstr, "%d", msgs[n].num) >= 0);	/* Convert int to string */
+          assert (asprintf (&formatstr, "%ld", n + 1) >= 0);	/* Convert int to string */
           SendCmd ("DELE", formatstr);
           free (formatstr);
         }
@@ -602,8 +601,8 @@ main (int argc, char *argv[])
           if ((iofile = fopen (ofilename, "w"))) {
             for (unsigned long n = 0; n < MailCount; n++) {
               fprintf (iofile,
-                       "%d:%d %-40.40s %-40.40s\n",
-                       msgs[n].num, msgs[n].size,
+                       "%ld:%d %-40.40s %-40.40s\n",
+                       n + 1, msgs[n].size,
                        msgs[n].from, msgs[n].subject);
             }
 
@@ -629,19 +628,19 @@ main (int argc, char *argv[])
               if (!a)
                 continue;
 
-              int tmpnum = atoi (tmpbuffer);
+              long tmpnum = atol (tmpbuffer);
               int tmpsize = atoi (&tmpbuffer[a + 1]);
 
               if (!tmpnum || !tmpsize)
                 continue;
 
               unsigned long n;
-              for (n = 0; n < MailCount && msgs[n].num != tmpnum; n++);
+              for (n = 0; n < MailCount && n + 1 != (unsigned long)tmpnum; n++);
               if (n < MailCount) {
                 if (msgs[n].size == tmpsize)
                   SendCmd ("DELE", tmpbuffer);
                 else
-                  printf ("Wrong message size, skipping message %d (%d<=>%d)\n",
+                  printf ("Wrong message size, skipping message %ld (%d<=>%d)\n",
                           tmpnum, tmpsize, msgs[n].size);
               }
             }
