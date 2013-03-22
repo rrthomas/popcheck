@@ -74,8 +74,8 @@ struct sockaddr_in INetSocketAddr;
 static char stringbuf[STRBUFLEN];
 static char *TopSubject;
 static char *TopFrom;
-static struct Message *lh;
-static unsigned long msgs;
+static struct Message *msgs;
+static unsigned long nmsgs;
 
 static FILE *file, *iofile;
 static char passbuff[40];
@@ -281,9 +281,9 @@ SendCmd (const char *cmd, char *parm)
     int a;
     for (a = 0; tmpbuf[a] != '\n'; a++);
 
-    for (unsigned long n = 0; a < StrLen && n < msgs && tmpbuf[a] != '.'; a++, n++) {
+    for (unsigned long n = 0; a < StrLen && n < nmsgs && tmpbuf[a] != '.'; a++, n++) {
       while (tmpbuf[a++] != ' ');
-      lh[n].size = atoi (&tmpbuf[a]);
+      msgs[n].size = atoi (&tmpbuf[a]);
 
       for (; tmpbuf[a] != '\n'; a++);
     }
@@ -407,10 +407,10 @@ MainProg (void)
     for (; currentline >= LINES - 1; currentline--) {
       n = currentmsg;
       for (int a = 0; a < LINES - 2; a++)
-        if (n < msgs)
+        if (n < nmsgs)
           n++;
 
-      if (n < msgs)
+      if (n < nmsgs)
         currentmsg++;
     }
 
@@ -432,9 +432,9 @@ MainProg (void)
       move (a, 0);
       clrtoeol ();
 
-      if (n < msgs) {
-        printw (formatstr, lh[n].num, delstr[lh[n].del],
-                lh[n].from, lh[n].subject, lh[n].size);
+      if (n < nmsgs) {
+        printw (formatstr, msgs[n].num, delstr[msgs[n].del],
+                msgs[n].from, msgs[n].subject, msgs[n].size);
         n++;
       }
 
@@ -449,15 +449,15 @@ MainProg (void)
       for (int a = 0; a < currentline; a++)
         n++;
 
-      lh[n].del = !lh[n].del;
+      msgs[n].del = !msgs[n].del;
 
       currentline++;
       break;
 
     case 's':
-      for (n = 0; n < msgs; n++) {
-        if (lh[n].del) {
-          assert (asprintf (&formatstr, "%d", lh[n].num) >= 0);	/* Convert int to string */
+      for (n = 0; n < nmsgs; n++) {
+        if (msgs[n].del) {
+          assert (asprintf (&formatstr, "%d", msgs[n].num) >= 0);	/* Convert int to string */
           SendCmd ("DELE", formatstr);
           free (formatstr);
         }
@@ -578,8 +578,8 @@ main (int argc, char *argv[])
   if (SocketConnect ()) {
     unsigned long a;
     if ((a = SendCmd ("STAT", NULL)) > 0) {
-      msgs = a;
-      lh = XCALLOC (msgs, struct Message);
+      nmsgs = a;
+      msgs = XCALLOC (nmsgs, struct Message);
       if ((SendCmd ("LIST", NULL)) != -1) {
         n = 0;
 
@@ -589,8 +589,8 @@ main (int argc, char *argv[])
           char *tmpbuf;
           assert (asprintf (&tmpbuf, "%ld", b) >= 0);	/* Convert int to string */
 
-          TopFrom = lh[n].from;
-          TopSubject = lh[n].subject;
+          TopFrom = msgs[n].from;
+          TopSubject = msgs[n].subject;
 
           printf ("\r%ld of %ld", b, a);
           fflush (stdout);
@@ -609,11 +609,11 @@ main (int argc, char *argv[])
           printf ("\nDumping data to file '%s'... ", ofilename);
 
           if ((iofile = fopen (ofilename, "w"))) {
-            for (n = 0; n < msgs; n++) {
+            for (n = 0; n < nmsgs; n++) {
               fprintf (iofile,
                        "%d:%d %-40.40s %-40.40s\n",
-                       lh[n].num, lh[n].size,
-                       lh[n].from, lh[n].subject);
+                       msgs[n].num, msgs[n].size,
+                       msgs[n].from, msgs[n].subject);
             }
 
             printf ("Done\n");
@@ -644,13 +644,13 @@ main (int argc, char *argv[])
               if (!tmpnum || !tmpsize)
                 continue;
 
-              for (n = 0; n < msgs && lh[n].num != tmpnum; n++);
-              if (n < msgs) {
-                if (lh[n].size == tmpsize)
+              for (n = 0; n < nmsgs && msgs[n].num != tmpnum; n++);
+              if (n < nmsgs) {
+                if (msgs[n].size == tmpsize)
                   SendCmd ("DELE", tmpbuffer);
                 else
                   printf ("Wrong message size, skipping message %d (%d<=>%d)\n",
-                          tmpnum, tmpsize, lh[n].size);
+                          tmpnum, tmpsize, msgs[n].size);
               }
             }
             printf ("Done!\n");
