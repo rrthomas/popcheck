@@ -238,16 +238,10 @@ main (int argc, char *argv[])
                     continue;
                   }
 
-                  if (tmpbuffer[strlen (tmpbuffer) - 1] == '\n')
-                    b = 0;
-                  else
-                    b = 1;
+                  b = tmpbuffer[strlen (tmpbuffer) - 1] != '\n';
 
-                  for (a = 0; a < 5 && isdigit (tmpbuffer[a]); a++)
-                    /* We'll restrict this to messages 0 - 99,999 for now. Just replace the 5 with a 6 if you want support for removing
-                       messages up to and including message number 999,999. */
-
-                    tmpbuffer[a] = 0x00;
+                  for (a = 0; isdigit (tmpbuffer[a]); a++);
+                  tmpbuffer[a] = 0x00;
 
                   if (!a)
                     continue;
