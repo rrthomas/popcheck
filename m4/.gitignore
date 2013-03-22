@@ -41,3 +41,10 @@
 /manywarnings.m4
 /warnings.m4
 /stdnoreturn.m4
+/error.m4
+/msvc-inval.m4
+/msvc-nothrow.m4
+/stdlib_h.m4
+/strerror.m4
+/sys_socket_h.m4
+/xalloc.m4

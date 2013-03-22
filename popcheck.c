@@ -46,6 +46,9 @@
 #include <ctype.h>
 #include <signal.h>
 
+#include "xalloc.h"
+
+
 #define STRBUFLEN 200
 
 /* Structure definitions */
@@ -69,7 +72,7 @@ static int RecvDat (char *databuf, int datlen);
 static void SocketDisconnect (void);
 static int SocketConnect (void);
 static void LocateHeaders (char *buffer, int buflen, int reset);
-static int AddAllNodes (int numof);
+static void AddAllNodes (int numof);
 
 static void finish (int sig);
 static void MainProg (void);
@@ -178,99 +181,98 @@ main (int argc, char *argv[])
   if (SocketConnect ()) {
     long a;
     if ((a = SendCmd ("STAT", NULL)) > 0) {
-      if (AddAllNodes (a)) {
-        if ((SendCmd ("LIST", NULL)) != -1) {
-          tempnode = &lh;
+      AddAllNodes (a);
+      if ((SendCmd ("LIST", NULL)) != -1) {
+        tempnode = &lh;
 
-          printf ("Getting data for message:\n");
+        printf ("Getting data for message:\n");
 
-          for (long b = 1; b <= a; b++) {
-            char *tmpbuf;
-            assert (asprintf (&tmpbuf, "%ld", b) >= 0);	/* Convert int to string */
+        for (long b = 1; b <= a; b++) {
+          char *tmpbuf;
+          assert (asprintf (&tmpbuf, "%ld", b) >= 0);	/* Convert int to string */
 
-            TopFrom = tempnode->from;
-            TopSubject = tempnode->subject;
+          TopFrom = tempnode->from;
+          TopSubject = tempnode->subject;
 
-            printf ("\r%ld of %ld", b, a);
-            fflush (stdout);
+          printf ("\r%ld of %ld", b, a);
+          fflush (stdout);
 
-            int ret = SendCmd ("TOP", tmpbuf);
-            free (tmpbuf);
-            if (ret == -1)
-              break;
+          int ret = SendCmd ("TOP", tmpbuf);
+          free (tmpbuf);
+          if (ret == -1)
+            break;
 
-            tempnode = tempnode->next;
-          }
+          tempnode = tempnode->next;
+        }
 
-          MailCount = a;
+        MailCount = a;
 
-          if (ofilename) {
-            printf ("\nDumping data to file '%s'... ", ofilename);
+        if (ofilename) {
+          printf ("\nDumping data to file '%s'... ", ofilename);
 
-            if ((iofile = fopen (ofilename, "w"))) {
-              for (tempnode = &lh; tempnode; tempnode = tempnode->next) {
-                fprintf (iofile,
-                         "%d:%d %-40.40s %-40.40s\n",
-                         tempnode->num, tempnode->size,
-                         tempnode->from, tempnode->subject);
-              }
-
-              printf ("Done\n");
-              fclose (iofile);
+          if ((iofile = fopen (ofilename, "w"))) {
+            for (tempnode = &lh; tempnode; tempnode = tempnode->next) {
+              fprintf (iofile,
+                       "%d:%d %-40.40s %-40.40s\n",
+                       tempnode->num, tempnode->size,
+                       tempnode->from, tempnode->subject);
             }
-            else
-              perror (ofilename);
-          }
-          else if (ifilename) {
-            printf ("\n");
-            if ((iofile = fopen (ifilename, "r"))) {
-              printf
-                ("You're about to delete all messages specified in '%s', are you sure you this is what you want? ",
-                 ifilename);
-              assert (fgets (tmpbuffer, 10, stdin));
-              if (tmpbuffer[0] == 'y' || tmpbuffer[0] == 'Y') {
-                long b = 0;
-                while (fgets (tmpbuffer, 500, iofile)) {
-                  if (b) {	/* If the last line wasn't completely read into the buffer */
-                    if (tmpbuffer[strlen (tmpbuffer) - 1] == '\n')
-                      b = 0;
-                    continue;
-                  }
 
-                  b = tmpbuffer[strlen (tmpbuffer) - 1] != '\n';
-
-                  for (a = 0; isdigit (tmpbuffer[a]); a++);
-                  tmpbuffer[a] = 0x00;
-
-                  if (!a)
-                    continue;
-
-                  int tmpnum = atoi (tmpbuffer);
-                  int tmpsize = atoi (&tmpbuffer[a + 1]);
-
-                  if (!tmpnum || !tmpsize)
-                    continue;
-
-                  for (tempnode = &lh; tempnode && tempnode->num != tmpnum; tempnode = tempnode->next);
-                  if (tempnode) {
-                    if (tempnode->size == tmpsize)
-                      SendCmd ("DELE", tmpbuffer);
-                    else
-                      printf ("Wrong message size, skipping message %d (%d<=>%d)\n",
-                              tmpnum, tmpsize, tempnode->size);
-                  }
-                }
-                printf ("Done!\n");
-              }
-              else
-                printf ("Bailing out!\n");
-            }
-            else
-              perror (ifilename);
+            printf ("Done\n");
+            fclose (iofile);
           }
           else
-            MainProg ();
+            perror (ofilename);
         }
+        else if (ifilename) {
+          printf ("\n");
+          if ((iofile = fopen (ifilename, "r"))) {
+            printf
+              ("You're about to delete all messages specified in '%s', are you sure you this is what you want? ",
+               ifilename);
+            assert (fgets (tmpbuffer, 10, stdin));
+            if (tmpbuffer[0] == 'y' || tmpbuffer[0] == 'Y') {
+              long b = 0;
+              while (fgets (tmpbuffer, 500, iofile)) {
+                if (b) {	/* If the last line wasn't completely read into the buffer */
+                  if (tmpbuffer[strlen (tmpbuffer) - 1] == '\n')
+                    b = 0;
+                  continue;
+                }
+
+                b = tmpbuffer[strlen (tmpbuffer) - 1] != '\n';
+
+                for (a = 0; isdigit (tmpbuffer[a]); a++);
+                tmpbuffer[a] = 0x00;
+
+                if (!a)
+                  continue;
+
+                int tmpnum = atoi (tmpbuffer);
+                int tmpsize = atoi (&tmpbuffer[a + 1]);
+
+                if (!tmpnum || !tmpsize)
+                  continue;
+
+                for (tempnode = &lh; tempnode && tempnode->num != tmpnum; tempnode = tempnode->next);
+                if (tempnode) {
+                  if (tempnode->size == tmpsize)
+                    SendCmd ("DELE", tmpbuffer);
+                  else
+                    printf ("Wrong message size, skipping message %d (%d<=>%d)\n",
+                            tmpnum, tmpsize, tempnode->size);
+                }
+              }
+              printf ("Done!\n");
+            }
+            else
+              printf ("Bailing out!\n");
+          }
+          else
+            perror (ifilename);
+        }
+        else
+          MainProg ();
       }
       else
         fprintf (stderr, "No messages on POP Host\n");
@@ -422,39 +424,23 @@ finish (int sig)
 static struct ListNode *
 AddNode (struct ListNode *node)
 {
-  struct ListNode *new, *tmp;
-
-  if ((new = (struct ListNode *) calloc (1, sizeof (struct ListNode)))) {
-    if (node->next) {
-      tmp = node->next;
-      new->next = tmp;
-      tmp->prev = new;
-    }
-    node->next = new;
-    new->prev = node;
-  }
-
-  return (new);
+  struct ListNode *new = (struct ListNode *) XZALLOC (struct ListNode);
+  node->next = new;
+  new->prev = node;
+  return new;
 }
 
 
-int
+void
 AddAllNodes (int numof)
 {
   struct ListNode *this = &lh;
-
   this->num = 1;
 
   for (int a = 2; a <= numof; a++) {
-
-    if (!(this = AddNode (this))) {
-      fprintf (stderr, "Out of memory while allocating buffers\n");
-      return (0);
-    }
-
+    this = AddNode (this);
     this->num = a;
   }
-  return (1);
 }
 
 
