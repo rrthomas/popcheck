@@ -404,10 +404,10 @@ MainProg (void)
     for (; currentline >= LINES - 1; currentline--) {
       n = currentmsg;
       for (int a = 0; a < LINES - 2; a++)
-        if (n < MailCount)
+        if (n < MailCount - 1)
           n++;
 
-      if (n < MailCount)
+      if (n < MailCount - 1)
         currentmsg++;
     }
 
