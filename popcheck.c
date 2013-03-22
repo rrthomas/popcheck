@@ -75,13 +75,11 @@ static char stringbuf[STRBUFLEN];
 static char *TopSubject;
 static char *TopFrom;
 static struct Message *msgs;
-static unsigned long nmsgs;
+static unsigned long MailCount;
 
 static FILE *file, *iofile;
 static char passbuff[40];
 static char tmpbuffer[500];
-
-static long MailCount;
 
 #define USAGE_STRING "Usage: %s -s server -u user [-P port] [-p password] [-o filename] [-i filename]\n"
 
@@ -281,7 +279,7 @@ SendCmd (const char *cmd, char *parm)
     int a;
     for (a = 0; tmpbuf[a] != '\n'; a++);
 
-    for (unsigned long n = 0; a < StrLen && n < nmsgs && tmpbuf[a] != '.'; a++, n++) {
+    for (unsigned long n = 0; a < StrLen && n < MailCount && tmpbuf[a] != '.'; a++, n++) {
       while (tmpbuf[a++] != ' ');
       msgs[n].size = atoi (&tmpbuf[a]);
 
@@ -407,10 +405,10 @@ MainProg (void)
     for (; currentline >= LINES - 1; currentline--) {
       n = currentmsg;
       for (int a = 0; a < LINES - 2; a++)
-        if (n < nmsgs)
+        if (n < MailCount)
           n++;
 
-      if (n < nmsgs)
+      if (n < MailCount)
         currentmsg++;
     }
 
@@ -419,7 +417,7 @@ MainProg (void)
         currentmsg--;
     }
 
-    if (currentline > MailCount - 1)
+    if (currentline > (long)MailCount - 1)
       currentline = MailCount - 1;
 
     n = currentmsg;
@@ -432,7 +430,7 @@ MainProg (void)
       move (a, 0);
       clrtoeol ();
 
-      if (n < nmsgs) {
+      if (n < MailCount) {
         printw (formatstr, msgs[n].num, delstr[msgs[n].del],
                 msgs[n].from, msgs[n].subject, msgs[n].size);
         n++;
@@ -455,7 +453,7 @@ MainProg (void)
       break;
 
     case 's':
-      for (n = 0; n < nmsgs; n++) {
+      for (n = 0; n < MailCount; n++) {
         if (msgs[n].del) {
           assert (asprintf (&formatstr, "%d", msgs[n].num) >= 0);	/* Convert int to string */
           SendCmd ("DELE", formatstr);
@@ -578,8 +576,8 @@ main (int argc, char *argv[])
   if (SocketConnect ()) {
     unsigned long a;
     if ((a = SendCmd ("STAT", NULL)) > 0) {
-      nmsgs = a;
-      msgs = XCALLOC (nmsgs, struct Message);
+      MailCount = a;
+      msgs = XCALLOC (MailCount, struct Message);
       if ((SendCmd ("LIST", NULL)) != -1) {
         n = 0;
 
@@ -603,13 +601,11 @@ main (int argc, char *argv[])
           n++;
         }
 
-        MailCount = a;
-
         if (ofilename) {
           printf ("\nDumping data to file '%s'... ", ofilename);
 
           if ((iofile = fopen (ofilename, "w"))) {
-            for (n = 0; n < nmsgs; n++) {
+            for (n = 0; n < MailCount; n++) {
               fprintf (iofile,
                        "%d:%d %-40.40s %-40.40s\n",
                        msgs[n].num, msgs[n].size,
@@ -644,8 +640,8 @@ main (int argc, char *argv[])
               if (!tmpnum || !tmpsize)
                 continue;
 
-              for (n = 0; n < nmsgs && msgs[n].num != tmpnum; n++);
-              if (n < nmsgs) {
+              for (n = 0; n < MailCount && msgs[n].num != tmpnum; n++);
+              if (n < MailCount) {
                 if (msgs[n].size == tmpsize)
                   SendCmd ("DELE", tmpbuffer);
                 else
