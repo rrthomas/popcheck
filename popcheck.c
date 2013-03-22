@@ -368,6 +368,7 @@ MainProg (void)
     case 'q':
       finish (0);
       break;
+
     case KEY_DOWN:
     case 'n':
       currentline++;
