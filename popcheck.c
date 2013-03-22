@@ -663,6 +663,4 @@ main (int argc, char *argv[])
     }
     SocketDisconnect ();
   }
-
-  exit (0);
 }
