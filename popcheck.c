@@ -70,7 +70,6 @@ static int RecvDat (char *databuf, int datlen);
 static void SocketDisconnect (void);
 static int SocketConnect (void);
 static void LocateHeaders (char *buffer, int buflen, int reset);
-static struct ListNode *AddNode (struct ListNode *node);
 static int AddAllNodes (int numof);
 
 static void finish (int sig);
@@ -79,10 +78,10 @@ void MainProg (void);
 
 /* Global variables */
 
-static char *pophost = 0, *popuser = 0, *poppass = 0, *ifilename = 0, *ofilename = 0;
+static char *pophost, *popuser, *poppass, *ifilename, *ofilename;
 static int popport = 110;
 
-int hSocket = SMTP_NO_SOCKET;
+static int hSocket = SMTP_NO_SOCKET;
 struct sockaddr_in INetSocketAddr;
 
 static char stringbuf[STRBUFLEN];
@@ -109,8 +108,7 @@ int
 main (int argc, char *argv[])
 {
   char sw;
-  long int a, b;
-  int tmpnum, tmpsize;
+  long a;
   char *tmpbuf;
 
   struct ListNode *tempnode;
@@ -189,7 +187,7 @@ main (int argc, char *argv[])
 
           printf ("Getting data for message:\n");
 
-          for (b = 1; b <= a; b++) {
+          for (long b = 1; b <= a; b++) {
             assert (asprintf (&tmpbuf, "%ld", b) >= 0);	/* Convert int to string */
 
             TopFrom = tempnode->from;
@@ -233,7 +231,7 @@ main (int argc, char *argv[])
                  ifilename);
               assert (fgets (tmpbuffer, 10, stdin));
               if (tmpbuffer[0] == 'y' || tmpbuffer[0] == 'Y') {
-                b = 0;
+                long b = 0;
                 while (fgets (tmpbuffer, 500, iofile)) {
                   if (b) {	/* If the last line wasn't completely read into the buffer */
                     if (tmpbuffer[strlen (tmpbuffer) - 1] == '\n')
@@ -255,8 +253,8 @@ main (int argc, char *argv[])
                   if (!a)
                     continue;
 
-                  tmpnum = atoi (tmpbuffer);
-                  tmpsize = atoi (&tmpbuffer[a + 1]);
+                  int tmpnum = atoi (tmpbuffer);
+                  int tmpsize = atoi (&tmpbuffer[a + 1]);
 
                   if (!tmpnum || !tmpsize)
                     continue;
@@ -429,6 +427,27 @@ finish (int sig)
 }
 
 
+static struct ListNode *
+AddNode (struct ListNode *node)
+{
+  struct ListNode *new, *tmp;
+
+  if ((new = (struct ListNode *) malloc (sizeof (struct ListNode)))) {
+    memset (new, 0, sizeof (struct ListNode));
+
+    if (node->next) {
+      tmp = node->next;
+      new->next = tmp;
+      tmp->prev = new;
+    }
+    node->next = new;
+    new->prev = node;
+  }
+
+  return (new);
+}
+
+
 int
 AddAllNodes (int numof)
 {
@@ -446,29 +465,6 @@ AddAllNodes (int numof)
     this->num = a;
   }
   return (1);
-}
-
-
-struct ListNode *
-AddNode (struct ListNode *node)
-{
-  struct ListNode *new, *tmp;
-
-  if ((new = (struct ListNode *) malloc (sizeof (struct ListNode)))) {
-    memset (new, 0, sizeof (struct ListNode));
-
-    if (node->next) {
-      tmp = node->next;
-      new->next = tmp;
-      tmp->prev = new;
-    }
-    node->next = new;
-    new->prev = node;
-
-    return (new);
-  }
-  else
-    return (0);
 }
 
 
