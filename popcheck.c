@@ -419,7 +419,6 @@ MainProg (void)
     if (currentline > (long)MailCount - 1)
       currentline = MailCount - 1;
 
-    n = currentmsg;
     for (int a = 0; a < LINES - 1; a++) {
       if (a == currentline)
         attrset (A_REVERSE);
@@ -429,25 +428,18 @@ MainProg (void)
       move (a, 0);
       clrtoeol ();
 
-      if (n < MailCount) {
+      n = currentmsg + a;
+      if (n < MailCount)
         printw (formatstr, n + 1, delstr[msgs[n].del],
                 msgs[n].from, msgs[n].subject, msgs[n].size);
-        n++;
-      }
-
     }
 
     c = getch ();
 
     switch (c) {
     case 'd':
-      n = currentmsg;
-
-      for (int a = 0; a < currentline; a++)
-        n++;
-
+      n = currentmsg + currentline;
       msgs[n].del = !msgs[n].del;
-
       currentline++;
       break;
 
@@ -634,14 +626,12 @@ main (int argc, char *argv[])
               if (!tmpnum || !tmpsize)
                 continue;
 
-              unsigned long n;
-              for (n = 0; n < MailCount && n + 1 != (unsigned long)tmpnum; n++);
-              if (n < MailCount) {
-                if (msgs[n].size == tmpsize)
+              if ((unsigned long)tmpnum <= MailCount) {
+                if (msgs[tmpnum - 1].size == tmpsize)
                   SendCmd ("DELE", tmpbuffer);
                 else
                   printf ("Wrong message size, skipping message %ld (%d<=>%d)\n",
-                          tmpnum, tmpsize, msgs[n].size);
+                          tmpnum, tmpsize, msgs[tmpnum - 1].size);
               }
             }
             printf ("Done!\n");
