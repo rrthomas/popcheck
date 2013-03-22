@@ -316,7 +316,8 @@ MainProg (void)
         currentnode = currentnode->prev;
     }
 
-    for (; currentline > MailCount - 1; currentline--);
+    if (currentline > MailCount - 1)
+      currentline = MailCount - 1;
 
     tempnode = currentnode;
     for (int a = 0; a < LINES - 1; a++) {
