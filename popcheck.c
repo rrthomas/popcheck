@@ -224,7 +224,7 @@ main (int argc, char *argv[])
             perror (ofilename);
         } else if (ifilename) {
           if ((iofile = fopen (ifilename, "r"))) {
-            long b = 0;
+            int b = 0;
             while (fgets (tmpbuffer, 500, iofile)) {
               if (b) {	/* If the last line wasn't completely read into the buffer */
                 if (tmpbuffer[strlen (tmpbuffer) - 1] == '\n')
