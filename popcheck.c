@@ -507,7 +507,6 @@ MainProg (void)
 int
 main (int argc, char *argv[])
 {
-  unsigned long n;
   struct termios oldTermios, newTermios;
 
   char sw;
@@ -581,14 +580,14 @@ main (int argc, char *argv[])
       if ((SendCmd ("LIST", NULL)) != -1) {
         printf ("Getting data for message:\n");
 
-        for (unsigned long b = 0; b < a; b++) {
+        for (unsigned long n = 0; n < a; n++) {
           char *tmpbuf;
-          assert (asprintf (&tmpbuf, "%ld", b + 1) >= 0);	/* Convert int to string */
+          assert (asprintf (&tmpbuf, "%ld", n + 1) >= 0);	/* Convert int to string */
 
-          TopFrom = msgs[b].from;
-          TopSubject = msgs[b].subject;
+          TopFrom = msgs[n].from;
+          TopSubject = msgs[n].subject;
 
-          printf ("\r%ld of %ld", b + 1, a);
+          printf ("\r%ld of %ld", n + 1, a);
           fflush (stdout);
 
           int ret = SendCmd ("TOP", tmpbuf);
@@ -601,7 +600,7 @@ main (int argc, char *argv[])
           printf ("\nDumping data to file '%s'... ", ofilename);
 
           if ((iofile = fopen (ofilename, "w"))) {
-            for (n = 0; n < MailCount; n++) {
+            for (unsigned long n = 0; n < MailCount; n++) {
               fprintf (iofile,
                        "%d:%d %-40.40s %-40.40s\n",
                        msgs[n].num, msgs[n].size,
@@ -636,6 +635,7 @@ main (int argc, char *argv[])
               if (!tmpnum || !tmpsize)
                 continue;
 
+              unsigned long n;
               for (n = 0; n < MailCount && msgs[n].num != tmpnum; n++);
               if (n < MailCount) {
                 if (msgs[n].size == tmpsize)
