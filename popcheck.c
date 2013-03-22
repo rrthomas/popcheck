@@ -106,16 +106,13 @@ static long MailCount;
 int
 main (int argc, char *argv[])
 {
-  char sw;
-  long a;
-  char *tmpbuf;
-
   struct ListNode *tempnode;
   struct termios oldTermios, newTermios;
 
   lh.next = NULL;
   lh.prev = NULL;
 
+  char sw;
   while ((sw = getopt (argc, argv, "s:P:u:p:i:o:")) != (char) EOF)
     switch (sw) {
     case 's':			/* Server switch */
@@ -149,7 +146,6 @@ main (int argc, char *argv[])
   }
 
   if (!poppass) {
-
     /* Get the current state of termios */
     tcgetattr (STDIN_FILENO, &newTermios);
     /* Keep a copy of the current setting of termios */
@@ -168,7 +164,8 @@ main (int argc, char *argv[])
     tcsetattr (STDIN_FILENO, TCSANOW, &oldTermios);
 
     poppass = passbuff;
-    for (a = 0; (passbuff[a] != 0x00) && (passbuff[a] != 0x0A); a++);
+    long a;
+    for (a = 0; passbuff[a] && passbuff[a] != 0x0a; a++);
     passbuff[a] = 0x00;
   }
 
@@ -179,6 +176,7 @@ main (int argc, char *argv[])
   }
 
   if (SocketConnect ()) {
+    long a;
     if ((a = SendCmd ("STAT", NULL)) > 0) {
       if (AddAllNodes (a)) {
         if ((SendCmd ("LIST", NULL)) != -1) {
@@ -187,6 +185,7 @@ main (int argc, char *argv[])
           printf ("Getting data for message:\n");
 
           for (long b = 1; b <= a; b++) {
+            char *tmpbuf;
             assert (asprintf (&tmpbuf, "%ld", b) >= 0);	/* Convert int to string */
 
             TopFrom = tempnode->from;
