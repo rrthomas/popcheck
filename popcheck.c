@@ -73,7 +73,7 @@ static void LocateHeaders (char *buffer, int buflen, int reset);
 static int AddAllNodes (int numof);
 
 static void finish (int sig);
-void MainProg (void);
+static void MainProg (void);
 
 
 /* Global variables */
