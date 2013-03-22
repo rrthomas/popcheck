@@ -70,7 +70,6 @@ static int RecvDat (char *databuf, int datlen);
 static void SocketDisconnect (void);
 static int SocketConnect (void);
 static void LocateHeaders (char *buffer, int buflen, int reset);
-static void FreeAllNodes (void);
 static struct ListNode *AddNode (struct ListNode *node);
 static int AddAllNodes (int numof);
 
@@ -291,7 +290,6 @@ main (int argc, char *argv[])
     }
     SocketDisconnect ();
   }
-  FreeAllNodes ();
 
   exit (0);
 }
@@ -431,7 +429,6 @@ static void
 finish (int sig)
 {
   SocketDisconnect ();
-  FreeAllNodes ();
   endwin ();
   exit (sig != 0);
 }
@@ -457,17 +454,6 @@ AddAllNodes (int numof)
   return (1);
 }
 
-
-void
-FreeAllNodes (void)
-{
-  struct ListNode *node, *next;
-
-  for (node = lh.next; node; node = next) {
-    next = node->next;
-    free (node);
-  }
-}
 
 struct ListNode *
 AddNode (struct ListNode *node)
