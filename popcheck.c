@@ -190,8 +190,6 @@ main (int argc, char *argv[])
           printf ("Getting data for message:\n");
 
           for (b = 1; b <= a; b++) {
-            int ret;
-
             assert (asprintf (&tmpbuf, "%ld", b) >= 0);	/* Convert int to string */
 
             TopFrom = tempnode->from;
@@ -200,7 +198,7 @@ main (int argc, char *argv[])
             printf ("\r%ld of %ld", b, a);
             fflush (stdout);
 
-            ret = SendCmd ("TOP", tmpbuf);
+            int ret = SendCmd ("TOP", tmpbuf);
             free (tmpbuf);
             if (ret == -1)
               break;
@@ -299,11 +297,9 @@ main (int argc, char *argv[])
 noreturn void
 MainProg (void)
 {
-  static char *formatstr;
-
+  char *formatstr;
   static char delstr[] = { ' ', 'D' };
-
-  int a, c, currentline = 0;
+  int c, currentline = 0;
   struct ListNode *tempnode, *currentnode;
 
   (void) signal (SIGINT, finish);	/* arrange interrupts to terminate */
@@ -329,7 +325,7 @@ MainProg (void)
   for (;;) {
     for (; currentline >= LINES - 1; currentline--) {
       tempnode = currentnode;
-      for (a = 0; a < LINES - 2; a++)
+      for (int a = 0; a < LINES - 2; a++)
         if (tempnode->next)
           tempnode = tempnode->next;
 
@@ -345,7 +341,7 @@ MainProg (void)
     for (; currentline > MailCount - 1; currentline--);
 
     tempnode = currentnode;
-    for (a = 0; a < LINES - 1; a++) {
+    for (int a = 0; a < LINES - 1; a++) {
       if (a == currentline)
         attrset (A_REVERSE);
       else
@@ -368,7 +364,7 @@ MainProg (void)
     case 'd':
       tempnode = currentnode;
 
-      for (a = 0; a < currentline; a++)
+      for (int a = 0; a < currentline; a++)
         tempnode = tempnode->next;
 
       if (tempnode->del)
@@ -424,7 +420,7 @@ MainProg (void)
 }
 
 
-static void
+void
 finish (int sig)
 {
   SocketDisconnect ();
@@ -436,12 +432,11 @@ finish (int sig)
 int
 AddAllNodes (int numof)
 {
-  int a;
   struct ListNode *this = &lh;
 
   this->num = 1;
 
-  for (a = 2; a <= numof; a++) {
+  for (int a = 2; a <= numof; a++) {
 
     if (!(this = AddNode (this))) {
       fprintf (stderr, "Out of memory while allocating buffers\n");
@@ -480,7 +475,6 @@ AddNode (struct ListNode *node)
 int
 SocketConnect (void)
 {
-  static int strlen;
   struct hostent *HostAddr;
 
   HostAddr = gethostbyname (pophost);
@@ -515,7 +509,8 @@ SocketConnect (void)
   printf ("Sending logon information\n");
 
   // Get the greeting message.
-  while ((strlen = RecvDat (stringbuf, STRBUFLEN)) && stringbuf[strlen - 1] != '\n');
+  int StrLen;
+  while ((StrLen = RecvDat (stringbuf, STRBUFLEN)) && stringbuf[StrLen - 1] != '\n');
 
   if (SendCmd ("USER", popuser) == -1) {
     SocketDisconnect ();
@@ -543,22 +538,19 @@ SocketDisconnect (void)
 
     printf ("Disconnected from POP Host\n");
   }
-  return;
 }
 
 
 int
 SendCmd (const char *cmd, char *parm)
 {
-  static char StrBuf[BUFSIZ];
-  static int StrLen;
-  static char *buffer;
-  int a, reset = 1, ret;
-  struct ListNode *node;
-  char *tmpbuf;
+  char StrBuf[BUFSIZ];
+  int StrLen;
 
   if (hSocket == SMTP_NO_SOCKET)
     return (0);
+
+  char *buffer;
 
   if (!parm)
     assert (asprintf (&buffer, "%s\r\n", cmd) >= 0);
@@ -567,7 +559,7 @@ SendCmd (const char *cmd, char *parm)
   else
     assert (asprintf (&buffer, "%s %s\r\n", cmd, parm) >= 0);
 
-  ret = SendDat (buffer);
+  int ret = SendDat (buffer);
   free (buffer);
   if (!ret)
     return (0);
@@ -603,6 +595,7 @@ SendCmd (const char *cmd, char *parm)
       return (-1);
     }
 
+    char *tmpbuf;
     if (!(tmpbuf = (char *) malloc (StrLen))) {
       fprintf (stderr, "Could not allocate memory for tempfile\n");
       return (-1);
@@ -616,12 +609,11 @@ SendCmd (const char *cmd, char *parm)
       return (-1);
     }
 
-    node = &lh;
-
+    int a;
     for (a = 0; tmpbuf[a] != '\n'; a++);
 
-    for (; (a < StrLen) && (node) && tmpbuf[a] != '.'; a++) {
-      for (; tmpbuf[a++] != ' ';);
+    for (struct ListNode *node = &lh; a < StrLen && node && tmpbuf[a] != '.'; a++) {
+      while (tmpbuf[a++] != ' ');
       node->size = atoi (&tmpbuf[a]);
 
       for (; tmpbuf[a] != '\n'; a++);
@@ -632,6 +624,7 @@ SendCmd (const char *cmd, char *parm)
   }
 
   else if (!strncmp (cmd, "TOP", 3)) {
+    int reset = 1;
     do {
       LocateHeaders (StrBuf, StrLen, reset);
       reset = 0;
@@ -658,11 +651,9 @@ SendDat (char *string)
 int
 RecvDat (char *databuf, int datlen)
 {
-  int reclen;
-
   if (hSocket == SMTP_NO_SOCKET)
     return (FALSE);
-  reclen = recv (hSocket, databuf, datlen - 1, 0);
+  int reclen = recv (hSocket, databuf, datlen - 1, 0);
 
   if (reclen)
     databuf[reclen] = 0x00;
@@ -715,7 +706,6 @@ LocateHeaders (char *buffer, int buflen, int reset)
   static int frtr = 0;		/* From true */
   static int prnl = 1;		/* Previous newline */
   static int frbptr = 0;	/* From buffer pointer index */
-  int b;
 
   if (reset) {
     suptr = 0;
@@ -727,7 +717,7 @@ LocateHeaders (char *buffer, int buflen, int reset)
     prnl = 1;
   }
 
-  for (b = 0; b < buflen; b++) {	/* Real routine starts here */
+  for (int b = 0; b < buflen; b++) {	/* Real routine starts here */
     if (frtr) {			/* If from string has been found (frtext) */
       if (prnl) {		/* Check for continued header line */
         if (buffer[b] == ' ')
