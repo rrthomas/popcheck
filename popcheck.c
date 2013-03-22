@@ -108,7 +108,6 @@ static long MailCount;
 int
 main (int argc, char *argv[])
 {
-  char progname[] = "popcheck";
   char sw;
   long int a, b;
   int tmpnum, tmpsize;
@@ -141,14 +140,14 @@ main (int argc, char *argv[])
       ifilename = optarg;
       break;
     case '?':			/* Unknown switch */
-      fprintf (stderr, USAGE_STRING, progname);
+      fprintf (stderr, USAGE_STRING, PACKAGE);
       exit (1);
     default:
       break;
     }
 
   if ((!pophost) || (!popuser)) {
-    fprintf (stderr, USAGE_STRING, progname);
+    fprintf (stderr, USAGE_STRING, PACKAGE);
     exit (1);
   }
 
