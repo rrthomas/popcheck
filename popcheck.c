@@ -223,47 +223,39 @@ main (int argc, char *argv[])
           } else
             perror (ofilename);
         } else if (ifilename) {
-          printf ("\n");
           if ((iofile = fopen (ifilename, "r"))) {
-            printf
-              ("You're about to delete all messages specified in '%s', are you sure you this is what you want? ",
-               ifilename);
-            assert (fgets (tmpbuffer, 10, stdin));
-            if (tmpbuffer[0] == 'y' || tmpbuffer[0] == 'Y') {
-              long b = 0;
-              while (fgets (tmpbuffer, 500, iofile)) {
-                if (b) {	/* If the last line wasn't completely read into the buffer */
-                  if (tmpbuffer[strlen (tmpbuffer) - 1] == '\n')
-                    b = 0;
-                  continue;
-                }
-
-                b = tmpbuffer[strlen (tmpbuffer) - 1] != '\n';
-
-                for (a = 0; isdigit (tmpbuffer[a]); a++);
-                tmpbuffer[a] = 0x00;
-
-                if (!a)
-                  continue;
-
-                int tmpnum = atoi (tmpbuffer);
-                int tmpsize = atoi (&tmpbuffer[a + 1]);
-
-                if (!tmpnum || !tmpsize)
-                  continue;
-
-                for (tempnode = &lh; tempnode && tempnode->num != tmpnum; tempnode = tempnode->next);
-                if (tempnode) {
-                  if (tempnode->size == tmpsize)
-                    SendCmd ("DELE", tmpbuffer);
-                  else
-                    printf ("Wrong message size, skipping message %d (%d<=>%d)\n",
-                            tmpnum, tmpsize, tempnode->size);
-                }
+            long b = 0;
+            while (fgets (tmpbuffer, 500, iofile)) {
+              if (b) {	/* If the last line wasn't completely read into the buffer */
+                if (tmpbuffer[strlen (tmpbuffer) - 1] == '\n')
+                  b = 0;
+                continue;
               }
-              printf ("Done!\n");
-            } else
-              printf ("Bailing out!\n");
+
+              b = tmpbuffer[strlen (tmpbuffer) - 1] != '\n';
+
+              for (a = 0; isdigit (tmpbuffer[a]); a++);
+              tmpbuffer[a] = 0x00;
+
+              if (!a)
+                continue;
+
+              int tmpnum = atoi (tmpbuffer);
+              int tmpsize = atoi (&tmpbuffer[a + 1]);
+
+              if (!tmpnum || !tmpsize)
+                continue;
+
+              for (tempnode = &lh; tempnode && tempnode->num != tmpnum; tempnode = tempnode->next);
+              if (tempnode) {
+                if (tempnode->size == tmpsize)
+                  SendCmd ("DELE", tmpbuffer);
+                else
+                  printf ("Wrong message size, skipping message %d (%d<=>%d)\n",
+                          tmpnum, tmpsize, tempnode->size);
+              }
+            }
+            printf ("Done!\n");
           } else
             perror (ifilename);
         } else
