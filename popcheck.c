@@ -64,16 +64,15 @@ struct ListNode
 
 /* Own functions */
 
-int SendCmd (const char *cmd, char *parm);
-int SendDat (char *string);
-int RecvDat (char *databuf, int datlen);
-void SocketDisconnect (void);
-int SocketConnect (void);
-void LocateHeaders (char *buffer, int buflen, int reset);
-void RemNode (struct ListNode *node);
-void FreeAllNodes (void);
-struct ListNode *AddNode (struct ListNode *node);
-int AddAllNodes (int numof);
+static int SendCmd (const char *cmd, char *parm);
+static int SendDat (char *string);
+static int RecvDat (char *databuf, int datlen);
+static void SocketDisconnect (void);
+static int SocketConnect (void);
+static void LocateHeaders (char *buffer, int buflen, int reset);
+static void FreeAllNodes (void);
+static struct ListNode *AddNode (struct ListNode *node);
+static int AddAllNodes (int numof);
 
 static void finish (int sig);
 void MainProg (void);
@@ -442,9 +441,7 @@ int
 AddAllNodes (int numof)
 {
   int a;
-  struct ListNode *this;
-
-  this = &lh;
+  struct ListNode *this = &lh;
 
   this->num = 1;
 
@@ -492,22 +489,6 @@ AddNode (struct ListNode *node)
   }
   else
     return (0);
-}
-
-void
-RemNode (struct ListNode *node)
-{
-  struct ListNode *next, *prev;
-
-  if (node != &lh) {
-    next = node->next;
-    prev = node->prev;
-
-    free (node);
-
-    next->prev = prev;
-    prev->next = next;
-  }
 }
 
 
