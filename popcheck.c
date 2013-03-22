@@ -47,7 +47,6 @@
 #include <signal.h>
 
 #define STRBUFLEN 200
-#define SMTP_NO_SOCKET -1
 
 /* Structure definitions */
 
@@ -81,7 +80,7 @@ static void MainProg (void);
 static char *pophost, *popuser, *poppass, *ifilename, *ofilename;
 static int popport = 110;
 
-static int hSocket = SMTP_NO_SOCKET;
+static int hSocket = -1;
 struct sockaddr_in INetSocketAddr;
 
 static char stringbuf[STRBUFLEN];
@@ -526,7 +525,7 @@ SocketConnect (void)
 void
 SocketDisconnect (void)
 {
-  if (hSocket != SMTP_NO_SOCKET) {
+  if (hSocket != -1) {
     SendCmd ("QUIT", NULL);
     shutdown (hSocket, 2);
 
@@ -543,7 +542,7 @@ SendCmd (const char *cmd, char *parm)
   char StrBuf[BUFSIZ];
   int StrLen;
 
-  if (hSocket == SMTP_NO_SOCKET)
+  if (hSocket == -1)
     return (0);
 
   char *buffer;
@@ -636,7 +635,7 @@ SendCmd (const char *cmd, char *parm)
 int
 SendDat (char *string)
 {
-  if (hSocket == SMTP_NO_SOCKET)
+  if (hSocket == -1)
     return (FALSE);
   if (send (hSocket, string, strlen (string), 0) != -1)
     return (TRUE);
@@ -647,7 +646,7 @@ SendDat (char *string)
 int
 RecvDat (char *databuf, int datlen)
 {
-  if (hSocket == SMTP_NO_SOCKET)
+  if (hSocket == -1)
     return (FALSE);
   int reclen = recv (hSocket, databuf, datlen - 1, 0);
 
