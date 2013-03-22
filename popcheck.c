@@ -424,9 +424,7 @@ AddNode (struct ListNode *node)
 {
   struct ListNode *new, *tmp;
 
-  if ((new = (struct ListNode *) malloc (sizeof (struct ListNode)))) {
-    memset (new, 0, sizeof (struct ListNode));
-
+  if ((new = (struct ListNode *) calloc (1, sizeof (struct ListNode)))) {
     if (node->next) {
       tmp = node->next;
       new->next = tmp;
