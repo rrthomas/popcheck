@@ -579,26 +579,22 @@ main (int argc, char *argv[])
       MailCount = a;
       msgs = XCALLOC (MailCount, struct Message);
       if ((SendCmd ("LIST", NULL)) != -1) {
-        n = 0;
-
         printf ("Getting data for message:\n");
 
-        for (unsigned long b = 1; b <= a; b++) {
+        for (unsigned long b = 0; b < a; b++) {
           char *tmpbuf;
-          assert (asprintf (&tmpbuf, "%ld", b) >= 0);	/* Convert int to string */
+          assert (asprintf (&tmpbuf, "%ld", b + 1) >= 0);	/* Convert int to string */
 
-          TopFrom = msgs[n].from;
-          TopSubject = msgs[n].subject;
+          TopFrom = msgs[b].from;
+          TopSubject = msgs[b].subject;
 
-          printf ("\r%ld of %ld", b, a);
+          printf ("\r%ld of %ld", b + 1, a);
           fflush (stdout);
 
           int ret = SendCmd ("TOP", tmpbuf);
           free (tmpbuf);
           if (ret == -1)
             break;
-
-          n++;
         }
 
         if (ofilename) {
