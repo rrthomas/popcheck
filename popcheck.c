@@ -97,7 +97,7 @@ static char tmpbuffer[500];
 
 static long MailCount;
 
-#define USAGE_STRING "Usage: %s [-s server] [-P port] [-u user] [-p password] [-o filename] [-i filename]\n"
+#define USAGE_STRING "Usage: %s -s server -u user [-P port] [-p password] [-o filename] [-i filename]\n"
 
 
 /*
