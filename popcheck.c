@@ -470,9 +470,7 @@ AddAllNodes (int numof)
 int
 SocketConnect (void)
 {
-  struct hostent *HostAddr;
-
-  HostAddr = gethostbyname (pophost);
+  struct hostent *HostAddr = gethostbyname (pophost);
 
   if (!HostAddr) {
     if (h_errno == TRY_AGAIN)
@@ -525,14 +523,10 @@ SocketConnect (void)
 void
 SocketDisconnect (void)
 {
-  if (hSocket != -1) {
-    SendCmd ("QUIT", NULL);
-    shutdown (hSocket, 2);
-
-    close (hSocket);
-
-    printf ("Disconnected from POP Host\n");
-  }
+  SendCmd ("QUIT", NULL);
+  shutdown (hSocket, SHUT_RDWR);
+  close (hSocket);
+  printf ("Disconnected from POP Host\n");
 }
 
 
@@ -541,10 +535,6 @@ SendCmd (const char *cmd, char *parm)
 {
   char StrBuf[BUFSIZ];
   int StrLen;
-
-  if (hSocket == -1)
-    return (0);
-
   char *buffer;
 
   if (!parm)
@@ -635,8 +625,6 @@ SendCmd (const char *cmd, char *parm)
 int
 SendDat (char *string)
 {
-  if (hSocket == -1)
-    return (FALSE);
   if (send (hSocket, string, strlen (string), 0) != -1)
     return (TRUE);
   fprintf (stderr, "Socket message send failure\n");
@@ -646,8 +634,6 @@ SendDat (char *string)
 int
 RecvDat (char *databuf, int datlen)
 {
-  if (hSocket == -1)
-    return (FALSE);
   int reclen = recv (hSocket, databuf, datlen - 1, 0);
 
   if (reclen)
