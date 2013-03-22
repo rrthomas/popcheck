@@ -5,7 +5,7 @@
 .\"
 .TH POPCHECK 1 "" "" "" ""
 .SH NAME
-popcheck \- see (and possibly delete) messages waiting on a POP server
+popcheck \- examine (and possibly delete) messages in a POP server mailbox
 .SH SYNOPSIS
 popcheck [-s \fIpop3_server\fR]
 [-P \fIpop3_port\fR]
@@ -13,14 +13,10 @@ popcheck [-s \fIpop3_server\fR]
 [-o \fIfilename\fR]
 [-i \fIfilename\fR]
 .SH DESCRIPTION
-The command
 .I popcheck
-is a simple program which will let you see a list of all messages waiting
-on a POP server and possibly delete some or all of them.
-.PP
-.I popcheck
-can work in interactive mode (default) or in batch mode
-(\fI-o\fR and \fI-i\fR  options).
+fetches a list of messages waiting on a POP server and allows the user to delete selected messages.
+It can work interactively (default) or in batch mode
+(\fI-o\fR and \fI-i\fR options).
 .\"
 .SH OPTIONS
 The following options are available from the command line:
@@ -30,24 +26,24 @@ The following options are available from the command line:
 Selects the POP mail server.
 .TP
 .B -P
-Selects the port to connect to on the mail server. Defaults to 110, the standard POP3 port.
+Selects the port to connect to on the mail server.
+Defaults to 110, the standard POP3 port.
 .TP
 .B -u
 Selects the mail account on the mail server.
 .TP
 .B -p
 Provides the password for accessing the mail account.
-If the password is not provided on the command line (recommended, since
-providing the password on the command line lets other system users see
-it, eg. by means of the 'ps' command)
-the user will be prompted for one.
+This is not recommended, as it makes it easy to reveal your password
+to others in various ways.
+If the password is not provided on the command line, the
+program prompts for it.
 .TP
 .B -i
 Run in batch mode.
 Read a list of messages from specified file and tell
 the POP server to delete these messages.
-.br
-USE THIS OPTION WITH EXTRA CARE, OR RISK MAIL LOSS.
+USE THIS OPTION CAREFULLY.
 .TP
 .B -o
 Run in batch mode.
@@ -72,27 +68,27 @@ q           - Exit without saving anything
 .sp
 .SH "BATCH MODE OPERATION"
 .PP
-Run popcheck with the -o switch first to make a textfile with all
+Run popcheck with the -o switch first to make a text file with all
 messages, including numbers and sizes.
 .PP
 Edit this file and remove all lines describing mail you want to keep.
 .PP
 Make sure the only lines in the file are those describing the mails you
-want to REMOVE. Please double-check because there is no turning-back
+want to REMOVE.
+Please double-check because there is no turning-back
 after you execute popcheck with the -i switch.
 .PP
-Run popcheck with the -i switch. All messages matching the message
+Run popcheck with the -i switch.
+All messages matching the message
 numbers and sizes (in the file) will be removed from the POP server.
 
 .SH CAVEATS
 .PP
-Please note that you run this program on your own risk. It's very easy
-to remove messages that you want to remove, but also to remove messages
-that you didn't want to remove. BE CAREFUL.
+Please note that you run this program on your own risk.
+It's very easy to remove messages that you want to remove, but also to remove messages
+that you didn't want to remove.
+BE CAREFUL.
 
 .SH AUTHOR
 .PP
 Staffan Hamala <staham@algonet.se>
-.SH "SEE ALSO"
-.PP
-in.pop3d(8)
