@@ -53,10 +53,8 @@
 
 /* Structure definitions */
 
-struct ListNode
+struct Message
 {
-  struct ListNode *prev;
-  struct ListNode *next;
   char subject[60];
   char from[60];
   int size;
@@ -76,7 +74,8 @@ struct sockaddr_in INetSocketAddr;
 static char stringbuf[STRBUFLEN];
 static char *TopSubject;
 static char *TopFrom;
-static struct ListNode lh;
+static struct Message *lh;
+static unsigned long msgs;
 
 static FILE *file, *iofile;
 static char passbuff[40];
@@ -85,29 +84,6 @@ static char tmpbuffer[500];
 static long MailCount;
 
 #define USAGE_STRING "Usage: %s -s server -u user [-P port] [-p password] [-o filename] [-i filename]\n"
-
-
-static struct ListNode *
-AddNode (struct ListNode *node)
-{
-  struct ListNode *new = (struct ListNode *) XZALLOC (struct ListNode);
-  node->next = new;
-  new->prev = node;
-  return new;
-}
-
-
-static void
-AddAllNodes (unsigned long numof)
-{
-  struct ListNode *this = &lh;
-  this->num = 1;
-
-  for (unsigned long a = 2; a <= numof; a++) {
-    this = AddNode (this);
-    this->num = a;
-  }
-}
 
 
 static int
@@ -305,12 +281,11 @@ SendCmd (const char *cmd, char *parm)
     int a;
     for (a = 0; tmpbuf[a] != '\n'; a++);
 
-    for (struct ListNode *node = &lh; a < StrLen && node && tmpbuf[a] != '.'; a++) {
+    for (unsigned long n = 0; a < StrLen && n < msgs && tmpbuf[a] != '.'; a++, n++) {
       while (tmpbuf[a++] != ' ');
-      node->size = atoi (&tmpbuf[a]);
+      lh[n].size = atoi (&tmpbuf[a]);
 
       for (; tmpbuf[a] != '\n'; a++);
-      node = node->next;
     }
 
     free (tmpbuf);
@@ -406,7 +381,7 @@ MainProg (void)
   char *formatstr;
   static char delstr[] = { ' ', 'D' };
   int c, currentline = 0;
-  struct ListNode *tempnode, *currentnode;
+  unsigned long n, currentmsg;
 
   (void) signal (SIGINT, finish);	/* arrange interrupts to terminate */
 
@@ -426,28 +401,28 @@ MainProg (void)
   addstr ("USAGE: Q - Quit without saving  S - Quit and save D - Mark for delete");
   attrset (A_NORMAL);
 
-  currentnode = &lh;
+  currentmsg = 0;
 
   for (;;) {
     for (; currentline >= LINES - 1; currentline--) {
-      tempnode = currentnode;
+      n = currentmsg;
       for (int a = 0; a < LINES - 2; a++)
-        if (tempnode->next)
-          tempnode = tempnode->next;
+        if (n < msgs)
+          n++;
 
-      if (tempnode->next)
-        currentnode = currentnode->next;
+      if (n < msgs)
+        currentmsg++;
     }
 
     for (; currentline < 0; currentline++) {
-      if (currentnode->prev)
-        currentnode = currentnode->prev;
+      if (currentmsg > 0)
+        currentmsg--;
     }
 
     if (currentline > MailCount - 1)
       currentline = MailCount - 1;
 
-    tempnode = currentnode;
+    n = currentmsg;
     for (int a = 0; a < LINES - 1; a++) {
       if (a == currentline)
         attrset (A_REVERSE);
@@ -457,10 +432,10 @@ MainProg (void)
       move (a, 0);
       clrtoeol ();
 
-      if (tempnode) {
-        printw (formatstr, tempnode->num, delstr[tempnode->del],
-                tempnode->from, tempnode->subject, tempnode->size);
-        tempnode = tempnode->next;
+      if (n < msgs) {
+        printw (formatstr, lh[n].num, delstr[lh[n].del],
+                lh[n].from, lh[n].subject, lh[n].size);
+        n++;
       }
 
     }
@@ -469,23 +444,20 @@ MainProg (void)
 
     switch (c) {
     case 'd':
-      tempnode = currentnode;
+      n = currentmsg;
 
       for (int a = 0; a < currentline; a++)
-        tempnode = tempnode->next;
+        n++;
 
-      if (tempnode->del)
-        tempnode->del = 0;
-      else
-        tempnode->del = 1;
+      lh[n].del = !lh[n].del;
 
       currentline++;
       break;
 
     case 's':
-      for (tempnode = &lh; tempnode; tempnode = tempnode->next) {
-        if (tempnode->del) {
-          assert (asprintf (&formatstr, "%d", tempnode->num) >= 0);	/* Convert int to string */
+      for (n = 0; n < msgs; n++) {
+        if (lh[n].del) {
+          assert (asprintf (&formatstr, "%d", lh[n].num) >= 0);	/* Convert int to string */
           SendCmd ("DELE", formatstr);
           free (formatstr);
         }
@@ -537,11 +509,8 @@ MainProg (void)
 int
 main (int argc, char *argv[])
 {
-  struct ListNode *tempnode;
+  unsigned long n;
   struct termios oldTermios, newTermios;
-
-  lh.next = NULL;
-  lh.prev = NULL;
 
   char sw;
   while ((sw = getopt (argc, argv, "s:P:u:p:i:o:")) != (char) EOF)
@@ -609,9 +578,10 @@ main (int argc, char *argv[])
   if (SocketConnect ()) {
     unsigned long a;
     if ((a = SendCmd ("STAT", NULL)) > 0) {
-      AddAllNodes (a);
+      msgs = a;
+      lh = XCALLOC (msgs, struct Message);
       if ((SendCmd ("LIST", NULL)) != -1) {
-        tempnode = &lh;
+        n = 0;
 
         printf ("Getting data for message:\n");
 
@@ -619,8 +589,8 @@ main (int argc, char *argv[])
           char *tmpbuf;
           assert (asprintf (&tmpbuf, "%ld", b) >= 0);	/* Convert int to string */
 
-          TopFrom = tempnode->from;
-          TopSubject = tempnode->subject;
+          TopFrom = lh[n].from;
+          TopSubject = lh[n].subject;
 
           printf ("\r%ld of %ld", b, a);
           fflush (stdout);
@@ -630,7 +600,7 @@ main (int argc, char *argv[])
           if (ret == -1)
             break;
 
-          tempnode = tempnode->next;
+          n++;
         }
 
         MailCount = a;
@@ -639,11 +609,11 @@ main (int argc, char *argv[])
           printf ("\nDumping data to file '%s'... ", ofilename);
 
           if ((iofile = fopen (ofilename, "w"))) {
-            for (tempnode = &lh; tempnode; tempnode = tempnode->next) {
+            for (n = 0; n < msgs; n++) {
               fprintf (iofile,
                        "%d:%d %-40.40s %-40.40s\n",
-                       tempnode->num, tempnode->size,
-                       tempnode->from, tempnode->subject);
+                       lh[n].num, lh[n].size,
+                       lh[n].from, lh[n].subject);
             }
 
             printf ("Done\n");
@@ -674,13 +644,13 @@ main (int argc, char *argv[])
               if (!tmpnum || !tmpsize)
                 continue;
 
-              for (tempnode = &lh; tempnode && tempnode->num != tmpnum; tempnode = tempnode->next);
-              if (tempnode) {
-                if (tempnode->size == tmpsize)
+              for (n = 0; n < msgs && lh[n].num != tmpnum; n++);
+              if (n < msgs) {
+                if (lh[n].size == tmpsize)
                   SendCmd ("DELE", tmpbuffer);
                 else
                   printf ("Wrong message size, skipping message %d (%d<=>%d)\n",
-                          tmpnum, tmpsize, tempnode->size);
+                          tmpnum, tmpsize, lh[n].size);
               }
             }
             printf ("Done!\n");
