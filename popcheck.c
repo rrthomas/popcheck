@@ -552,9 +552,7 @@ main (int argc, char *argv[])
     tcsetattr (STDIN_FILENO, TCSANOW, &oldTermios);
 
     poppass = passbuff;
-    long a;
-    for (a = 0; passbuff[a] && passbuff[a] != 0x0a; a++);
-    passbuff[a] = 0x00;
+    *strchrnul (passbuff, '\n') = '\0';
   }
 
 
