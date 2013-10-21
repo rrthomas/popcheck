@@ -74,7 +74,7 @@ static struct Message *msgs;
 static unsigned long MailCount;
 
 static FILE *file, *iofile;
-static char passbuff[40];
+static char passbuff[BUFSIZ];
 
 #define USAGE_STRING "Usage: %s -s server -u user [-P port] [-p password] [-o filename] [-i filename]\n"
 
@@ -543,7 +543,7 @@ main (int argc, char *argv[])
     tcsetattr (STDIN_FILENO, TCSAFLUSH, &newTermios);
 
     printf ("POP Password: ");
-    assert (fgets (passbuff, 40, stdin));
+    assert (fgets (passbuff, BUFSIZ, stdin));
 
     /* reset to old termios */
     tcsetattr (STDIN_FILENO, TCSANOW, &oldTermios);
@@ -551,7 +551,6 @@ main (int argc, char *argv[])
     poppass = passbuff;
     *strchrnul (passbuff, '\n') = '\0';
   }
-
 
   if (!(file = tmpfile ())) {
     perror ("Tempfile");
