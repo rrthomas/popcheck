@@ -1,5 +1,5 @@
 /* PopCheck.c                                                                 *
- * Author: Staffan H‰m‰l‰ (staham@algonet.se)                                 *
+ * Author: Staffan H√§m√§l√§ (staham@algonet.se)                                 *
  * Date started: 28-Apr-1998                                                  *
  *                                                                            *
  * Description:                                                               *
