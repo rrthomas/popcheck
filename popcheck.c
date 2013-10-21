@@ -49,8 +49,6 @@
 #include "xalloc.h"
 
 
-#define STRBUFLEN 200
-
 /* Structure definitions */
 
 struct Message
@@ -70,7 +68,6 @@ static int popport = 110;
 static int hSocket = -1;
 struct sockaddr_in INetSocketAddr;
 
-static char stringbuf[STRBUFLEN];
 static char *TopSubject;
 static char *TopFrom;
 static struct Message *msgs;
@@ -344,7 +341,8 @@ SocketConnect (void)
 
   // Get the greeting message.
   int StrLen;
-  while ((StrLen = RecvDat (stringbuf, STRBUFLEN)) && stringbuf[StrLen - 1] != '\n');
+  char stringbuf[BUFSIZ];
+  while ((StrLen = RecvDat (stringbuf, BUFSIZ)) && stringbuf[StrLen - 1] != '\n');
 
   if (SendCmd ("USER", popuser) == -1) {
     SocketDisconnect ();
