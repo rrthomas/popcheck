@@ -75,7 +75,6 @@ static unsigned long MailCount;
 
 static FILE *file, *iofile;
 static char passbuff[40];
-static char tmpbuffer[500];
 
 #define USAGE_STRING "Usage: %s -s server -u user [-P port] [-p password] [-o filename] [-i filename]\n"
 
@@ -601,7 +600,8 @@ main (int argc, char *argv[])
         } else if (ifilename) {
           if ((iofile = fopen (ifilename, "r"))) {
             int b = 0;
-            while (fgets (tmpbuffer, 500, iofile)) {
+            static char tmpbuffer[BUFSIZ];
+            while (fgets (tmpbuffer, BUFSIZ, iofile)) {
               if (b) {	/* If the last line wasn't completely read into the buffer */
                 if (tmpbuffer[strlen (tmpbuffer) - 1] == '\n')
                   b = 0;
